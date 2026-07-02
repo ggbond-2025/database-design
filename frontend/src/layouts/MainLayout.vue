@@ -39,9 +39,25 @@ const menuItems = computed(() => {
     ]
   }
   if (auth.role === 'TEACHER') {
-    return [{ index: '/teacher/dashboard', label: '教师工作台', icon: Reading }]
+    return [
+      { index: '/teacher/dashboard', label: '教师工作台', icon: Reading },
+      { index: '/teacher/assignments', label: '我的任课', icon: Notebook },
+      { index: '/teacher/enrollments', label: '选课名单', icon: UserFilled },
+      { index: '/teacher/grades', label: '成绩录入', icon: DataAnalysis },
+      { index: '/teacher/statistics', label: '课程统计', icon: DataBoard },
+      { index: '/teacher/profile', label: '本人信息', icon: User }
+    ]
   }
-  return [{ index: '/student/dashboard', label: '学生中心', icon: UserFilled }]
+  return [
+    { index: '/student/dashboard', label: '学生中心', icon: UserFilled },
+    { index: '/student/available-courses', label: '可选课程', icon: Tickets },
+    { index: '/student/enrollments', label: '我的选课', icon: Reading },
+    { index: '/student/courses', label: '我的课程', icon: Notebook },
+    { index: '/student/grades', label: '我的成绩', icon: DataAnalysis },
+    { index: '/student/credits', label: '我的学分', icon: DataBoard },
+    { index: '/student/rank', label: '我的排名', icon: Files },
+    { index: '/student/profile', label: '本人信息', icon: User }
+  ]
 })
 
 const activeMenu = computed(() => route.path)

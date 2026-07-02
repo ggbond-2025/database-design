@@ -15,8 +15,20 @@ import StudentManagementView from '@/views/admin/StudentManagementView.vue'
 import TeacherManagementView from '@/views/admin/TeacherManagementView.vue'
 import UserManagementView from '@/views/admin/UserManagementView.vue'
 import LoginView from '@/views/login/LoginView.vue'
+import AvailableCoursesView from '@/views/student/AvailableCoursesView.vue'
+import MyCoursesView from '@/views/student/MyCoursesView.vue'
+import MyCreditsView from '@/views/student/MyCreditsView.vue'
+import MyEnrollmentsView from '@/views/student/MyEnrollmentsView.vue'
+import MyGradesView from '@/views/student/MyGradesView.vue'
+import MyRankView from '@/views/student/MyRankView.vue'
+import StudentProfileView from '@/views/student/StudentProfileView.vue'
 import StudentDashboardView from '@/views/student/StudentDashboardView.vue'
+import TeacherAssignmentsView from '@/views/teacher/TeacherAssignmentsView.vue'
 import TeacherDashboardView from '@/views/teacher/TeacherDashboardView.vue'
+import TeacherEnrollmentListView from '@/views/teacher/TeacherEnrollmentListView.vue'
+import TeacherGradeEntryView from '@/views/teacher/TeacherGradeEntryView.vue'
+import TeacherProfileView from '@/views/teacher/TeacherProfileView.vue'
+import TeacherStatisticsView from '@/views/teacher/TeacherStatisticsView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -103,9 +115,69 @@ const router = createRouter({
           meta: { role: 'TEACHER' }
         },
         {
+          path: 'teacher/assignments',
+          component: TeacherAssignmentsView,
+          meta: { role: 'TEACHER' }
+        },
+        {
+          path: 'teacher/enrollments',
+          component: TeacherEnrollmentListView,
+          meta: { role: 'TEACHER' }
+        },
+        {
+          path: 'teacher/grades',
+          component: TeacherGradeEntryView,
+          meta: { role: 'TEACHER' }
+        },
+        {
+          path: 'teacher/statistics',
+          component: TeacherStatisticsView,
+          meta: { role: 'TEACHER' }
+        },
+        {
+          path: 'teacher/profile',
+          component: TeacherProfileView,
+          meta: { role: 'TEACHER' }
+        },
+        {
           path: 'student/dashboard',
           name: 'student-dashboard',
           component: StudentDashboardView,
+          meta: { role: 'STUDENT' }
+        },
+        {
+          path: 'student/available-courses',
+          component: AvailableCoursesView,
+          meta: { role: 'STUDENT' }
+        },
+        {
+          path: 'student/enrollments',
+          component: MyEnrollmentsView,
+          meta: { role: 'STUDENT' }
+        },
+        {
+          path: 'student/courses',
+          component: MyCoursesView,
+          meta: { role: 'STUDENT' }
+        },
+        {
+          path: 'student/grades',
+          component: MyGradesView,
+          meta: { role: 'STUDENT' }
+        },
+        {
+          path: 'student/credits',
+          component: MyCreditsView,
+          meta: { role: 'STUDENT' }
+        },
+        {
+          path: 'student/rank',
+          component: MyRankView,
+          meta: { role: 'STUDENT' }
+        },
+        {
+          path: 'student/profile',
+          component: StudentProfileView,
           meta: { role: 'STUDENT' }
         }
       ]

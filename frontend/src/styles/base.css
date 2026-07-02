@@ -240,6 +240,22 @@ input {
   margin-bottom: 16px;
 }
 
+.toolbar-action {
+  margin-bottom: 16px;
+}
+
+.edit-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  padding: 14px;
+  background: #f8fbf8;
+}
+
 .toolbar-search {
   width: min(320px, 100%);
 }

@@ -1,7 +1,28 @@
 <template>
-  <section class="page-panel">
-    <p class="eyebrow">STUDENT</p>
-    <h1>学生中心</h1>
-    <p>查看可选课程、管理我的选课，查询成绩、学分和排名。</p>
+  <section class="page-container">
+    <header class="page-header">
+      <div>
+        <h1>学生中心</h1>
+        <p>完成选课、退课、成绩查询、学分统计和排名查询闭环。</p>
+      </div>
+    </header>
+    <div class="dashboard-grid">
+      <RouterLink class="dashboard-card" to="/student/available-courses">
+        <strong>可选课程</strong>
+        <span>查看开放选课课程并提交选课</span>
+      </RouterLink>
+      <RouterLink class="dashboard-card" to="/student/enrollments">
+        <strong>我的选课</strong>
+        <span>查看状态并对未录成绩课程退课</span>
+      </RouterLink>
+      <RouterLink class="dashboard-card" to="/student/grades">
+        <strong>我的成绩</strong>
+        <span>查询课程成绩、教师和学分</span>
+      </RouterLink>
+      <RouterLink class="dashboard-card" to="/student/credits">
+        <strong>我的学分</strong>
+        <span>查看触发器维护的已修学分总数</span>
+      </RouterLink>
+    </div>
   </section>
 </template>
