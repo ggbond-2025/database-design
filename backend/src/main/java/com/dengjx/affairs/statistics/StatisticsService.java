@@ -50,6 +50,18 @@ public class StatisticsService {
         return jdbcTemplate.queryForList("SELECT * FROM V_Dengjx_CourseAverage13 ORDER BY djx_AcademicYear13, djx_Semester13");
     }
 
+    public List<Map<String, Object>> studentCreditSummaries() {
+        return jdbcTemplate.queryForList("SELECT * FROM V_Dengjx_StudentCreditSummary13 ORDER BY djx_StudentId13");
+    }
+
+    public List<Map<String, Object>> teacherAssignments() {
+        return jdbcTemplate.queryForList("SELECT * FROM V_Dengjx_TeacherAssignments13 ORDER BY djx_TeacherId13, djx_AcademicYear13, djx_Semester13");
+    }
+
+    public List<Map<String, Object>> classCourses() {
+        return jdbcTemplate.queryForList("SELECT * FROM V_Dengjx_ClassCourses13 ORDER BY djx_ClassId13, djx_AcademicYear13, djx_Semester13");
+    }
+
     public List<Map<String, Object>> teacherCourseAverages(Long userId) {
         Long teacherId = userContextService.getTeacherId(userId);
         String sql = """

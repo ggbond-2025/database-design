@@ -207,6 +207,110 @@ input {
   color: #5f7067;
 }
 
+.page-container {
+  min-height: calc(100vh - 120px);
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  padding: 28px;
+  background: #ffffff;
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 26px;
+}
+
+.page-header p {
+  margin: 8px 0 0;
+  color: #66756e;
+}
+
+.data-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.toolbar-search {
+  width: min(320px, 100%);
+}
+
+.data-table {
+  width: 100%;
+}
+
+.pager-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.full-control {
+  width: 100%;
+}
+
+.dashboard-grid,
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.dashboard-card {
+  min-height: 142px;
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  padding: 22px;
+  color: inherit;
+  text-decoration: none;
+  background: linear-gradient(180deg, #ffffff, #f7fbf7);
+}
+
+.dashboard-card strong {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--app-green);
+  font-size: 18px;
+}
+
+.dashboard-card span {
+  color: #65756d;
+  line-height: 1.7;
+}
+
+.stat-section {
+  min-width: 0;
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  padding: 16px;
+  background: #ffffff;
+}
+
+.stat-section h2 {
+  margin: 0 0 14px;
+  font-size: 18px;
+}
+
+.query-section {
+  margin-top: 16px;
+}
+
+.inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
 @media (max-width: 760px) {
   .login-page {
     padding: 16px;

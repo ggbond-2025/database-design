@@ -29,6 +29,21 @@ public class StatisticsController {
         return ApiResponse.ok(statisticsService.adminCourseAverages());
     }
 
+    @GetMapping("/api/admin/statistics/student-credits")
+    public ApiResponse<List<Map<String, Object>>> studentCreditSummaries() {
+        return ApiResponse.ok(statisticsService.studentCreditSummaries());
+    }
+
+    @GetMapping("/api/admin/statistics/teacher-assignments")
+    public ApiResponse<List<Map<String, Object>>> teacherAssignments() {
+        return ApiResponse.ok(statisticsService.teacherAssignments());
+    }
+
+    @GetMapping("/api/admin/statistics/class-courses")
+    public ApiResponse<List<Map<String, Object>>> classCourses() {
+        return ApiResponse.ok(statisticsService.classCourses());
+    }
+
     @GetMapping("/api/admin/statistics/student-year-scores")
     public ApiResponse<List<Map<String, Object>>> adminStudentYearScores(
             @RequestParam Long studentId,

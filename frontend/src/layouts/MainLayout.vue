@@ -1,18 +1,42 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { DataBoard, Reading, SwitchButton, UserFilled } from '@element-plus/icons-vue'
+import {
+  DataAnalysis,
+  DataBoard,
+  Files,
+  Notebook,
+  OfficeBuilding,
+  Reading,
+  School,
+  SwitchButton,
+  Tickets,
+  User,
+  UserFilled
+} from '@element-plus/icons-vue'
 
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
 const route = useRoute()
-const router = useRouter()
 
 const menuItems = computed(() => {
   if (auth.role === 'ADMIN') {
-    return [{ index: '/admin/dashboard', label: '管理仪表盘', icon: DataBoard }]
+    return [
+      { index: '/admin/dashboard', label: '管理仪表盘', icon: DataBoard },
+      { index: '/admin/regions', label: '地区管理', icon: OfficeBuilding },
+      { index: '/admin/majors', label: '专业管理', icon: School },
+      { index: '/admin/classes', label: '班级管理', icon: Files },
+      { index: '/admin/students', label: '学生管理', icon: UserFilled },
+      { index: '/admin/teachers', label: '教师管理', icon: User },
+      { index: '/admin/courses', label: '课程管理', icon: Notebook },
+      { index: '/admin/assignments', label: '开课安排', icon: Tickets },
+      { index: '/admin/enrollments', label: '选课记录', icon: Reading },
+      { index: '/admin/grades', label: '成绩管理', icon: DataAnalysis },
+      { index: '/admin/statistics', label: '统计查询', icon: DataBoard },
+      { index: '/admin/users', label: '用户账号', icon: User }
+    ]
   }
   if (auth.role === 'TEACHER') {
     return [{ index: '/teacher/dashboard', label: '教师工作台', icon: Reading }]
