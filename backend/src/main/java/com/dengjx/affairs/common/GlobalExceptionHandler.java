@@ -3,6 +3,7 @@ package com.dengjx.affairs.common;
 import java.util.Optional;
 
 import org.springframework.context.support.DefaultMessageSourceResolvable;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -32,6 +33,12 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ApiResponse<Void> handleAccessDeniedException(AccessDeniedException exception) {
         return ApiResponse.fail("没有权限访问该资源");
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiResponse<Void> handleDataIntegrityViolationException(DataIntegrityViolationException exception) {
+        return ApiResponse.fail("数据存在关联约束，无法完成操作");
     }
 
     @ExceptionHandler(Exception.class)
