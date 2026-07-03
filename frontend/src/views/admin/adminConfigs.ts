@@ -27,7 +27,7 @@ export const regionConfig: CrudPageConfig = {
   resource: 'regions',
   rowKey: 'regionId',
   fields: [
-    { prop: 'regionId', label: 'ID', form: false },
+    { prop: 'regionId', label: '地区编号', form: false },
     { prop: 'regionName', label: '地区名称', required: true }
   ]
 }
@@ -38,7 +38,7 @@ export const majorConfig: CrudPageConfig = {
   resource: 'majors',
   rowKey: 'majorId',
   fields: [
-    { prop: 'majorId', label: 'ID', form: false },
+    { prop: 'majorId', label: '专业编号', form: false },
     { prop: 'majorName', label: '专业名称', required: true }
   ]
 }
@@ -49,9 +49,9 @@ export const classConfig: CrudPageConfig = {
   resource: 'classes',
   rowKey: 'classId',
   fields: [
-    { prop: 'classId', label: 'ID', form: false },
+    { prop: 'classId', label: '班级编号', form: false },
     { prop: 'className', label: '班级名称', required: true },
-    { prop: 'majorId', label: '专业ID', type: 'number', required: true },
+    { prop: 'majorId', label: '专业编号', type: 'number', required: true },
     { prop: 'gradeYear', label: '年级', type: 'number', required: true }
   ]
 }
@@ -62,13 +62,13 @@ export const studentConfig: CrudPageConfig = {
   resource: 'students',
   rowKey: 'studentId',
   fields: [
-    { prop: 'studentId', label: 'ID', form: false },
+    { prop: 'studentId', label: '学生编号', form: false },
     { prop: 'sno', label: '学号', required: true },
     { prop: 'sname', label: '姓名', required: true },
     { prop: 'gender', label: '性别', type: 'select', required: true, options: genderOptions },
     { prop: 'age', label: '年龄', type: 'number', required: true },
-    { prop: 'classId', label: '班级ID', type: 'number', required: true },
-    { prop: 'regionId', label: '地区ID', type: 'number', required: true },
+    { prop: 'classId', label: '班级编号', type: 'number', required: true },
+    { prop: 'regionId', label: '地区编号', type: 'number', required: true },
     { prop: 'totalCredits', label: '已修学分', form: false }
   ]
 }
@@ -79,7 +79,7 @@ export const teacherConfig: CrudPageConfig = {
   resource: 'teachers',
   rowKey: 'teacherId',
   fields: [
-    { prop: 'teacherId', label: 'ID', form: false },
+    { prop: 'teacherId', label: '教师记录编号', form: false },
     { prop: 'tno', label: '教师编号', required: true },
     { prop: 'tname', label: '姓名', required: true },
     { prop: 'gender', label: '性别', type: 'select', required: true, options: genderOptions },
@@ -95,7 +95,7 @@ export const courseConfig: CrudPageConfig = {
   resource: 'courses',
   rowKey: 'courseId',
   fields: [
-    { prop: 'courseId', label: 'ID', form: false },
+    { prop: 'courseId', label: '课程记录编号', form: false },
     { prop: 'courseCode', label: '课程编号', required: true },
     { prop: 'courseName', label: '课程名称', required: true },
     { prop: 'hours', label: '学时', type: 'number', required: true },
@@ -110,10 +110,10 @@ export const assignmentConfig: CrudPageConfig = {
   resource: 'assignments',
   rowKey: 'assignmentId',
   fields: [
-    { prop: 'assignmentId', label: 'ID', form: false },
-    { prop: 'courseId', label: '课程ID', type: 'number', required: true },
-    { prop: 'classId', label: '班级ID', type: 'number', required: true },
-    { prop: 'teacherId', label: '教师ID', type: 'number', required: true },
+    { prop: 'assignmentId', label: '开课安排编号', form: false },
+    { prop: 'courseId', label: '课程记录编号', type: 'number', required: true },
+    { prop: 'classId', label: '班级编号', type: 'number', required: true },
+    { prop: 'teacherId', label: '教师记录编号', type: 'number', required: true },
     { prop: 'academicYear', label: '学年', required: true },
     {
       prop: 'semester',
@@ -137,8 +137,8 @@ export const gradeConfig: CrudPageConfig = {
   resource: 'grades',
   rowKey: 'gradeId',
   fields: [
-    { prop: 'gradeId', label: 'ID', form: false },
-    { prop: 'enrollmentId', label: '选课ID', type: 'number', required: true },
+    { prop: 'gradeId', label: '成绩编号', form: false },
+    { prop: 'enrollmentId', label: '选课记录编号', type: 'number', required: true },
     { prop: 'score', label: '成绩', type: 'number', required: true },
     { prop: 'gradedAt', label: '录入时间', form: false }
   ]
@@ -150,7 +150,7 @@ export const userConfig: CrudPageConfig = {
   resource: 'users',
   rowKey: 'userId',
   fields: [
-    { prop: 'userId', label: 'ID', form: false },
+    { prop: 'userId', label: '账号编号', form: false },
     { prop: 'username', label: '用户名', required: true },
     { prop: 'password', label: '密码', required: true, table: false },
     {
@@ -164,8 +164,8 @@ export const userConfig: CrudPageConfig = {
         { label: '学生', value: 'STUDENT' }
       ]
     },
-    { prop: 'studentId', label: '学生ID', type: 'number' },
-    { prop: 'teacherId', label: '教师ID', type: 'number' },
+    { prop: 'studentId', label: '学生编号', type: 'number' },
+    { prop: 'teacherId', label: '教师记录编号', type: 'number' },
     { prop: 'enabled', label: '启用', type: 'boolean' }
   ]
 }

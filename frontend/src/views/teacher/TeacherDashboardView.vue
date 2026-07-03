@@ -13,7 +13,7 @@
       </RouterLink>
       <RouterLink class="dashboard-card" to="/teacher/enrollments">
         <strong>选课名单</strong>
-        <span>按开课ID查看课程下的学生名单</span>
+        <span>选择任课课程查看学生名单</span>
       </RouterLink>
       <RouterLink class="dashboard-card" to="/teacher/grades">
         <strong>成绩录入</strong>

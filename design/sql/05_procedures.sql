@@ -3,7 +3,8 @@ CREATE OR REPLACE PROCEDURE Dengjx_GetStudentYearScores13(
     IN academic_year VARCHAR,
     OUT result_cursor REFCURSOR
 )
-IS
+LANGUAGE plpgsql
+AS $$
 BEGIN
     OPEN result_cursor FOR
         SELECT
@@ -24,13 +25,14 @@ BEGIN
           AND e.djx_Status13 <> 'DROPPED'
         ORDER BY a.djx_Semester13, c.djx_CourseCode13;
 END;
-/
+$$;
 
 CREATE OR REPLACE PROCEDURE Dengjx_GetCourseScoreRank13(
     IN assignment_id BIGINT,
     OUT result_cursor REFCURSOR
 )
-IS
+LANGUAGE plpgsql
+AS $$
 BEGIN
     OPEN result_cursor FOR
         SELECT
@@ -50,4 +52,4 @@ BEGIN
           AND e.djx_Status13 <> 'DROPPED'
         ORDER BY g.djx_Score13 DESC, s.djx_Sno13;
 END;
-/
+$$;

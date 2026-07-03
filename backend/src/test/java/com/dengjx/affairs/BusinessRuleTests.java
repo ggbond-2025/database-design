@@ -6,14 +6,16 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 
-import com.dengjx.affairs.assignment.Assignment;
-import com.dengjx.affairs.assignment.AssignmentMapper;
+import com.dengjx.affairs.entity.Assignment;
+import com.dengjx.affairs.mapper.AssignmentMapper;
 import com.dengjx.affairs.common.BusinessException;
-import com.dengjx.affairs.enrollment.EnrollmentMapper;
-import com.dengjx.affairs.enrollment.EnrollmentService;
-import com.dengjx.affairs.grade.GradeMapper;
-import com.dengjx.affairs.grade.GradeService;
-import com.dengjx.affairs.grade.dto.GradeRequest;
+import com.dengjx.affairs.mapper.EnrollmentMapper;
+import com.dengjx.affairs.service.EnrollmentService;
+import com.dengjx.affairs.service.impl.EnrollmentServiceImpl;
+import com.dengjx.affairs.mapper.GradeMapper;
+import com.dengjx.affairs.service.GradeService;
+import com.dengjx.affairs.service.impl.GradeServiceImpl;
+import com.dengjx.affairs.dto.GradeRequest;
 import com.dengjx.affairs.security.UserContextService;
 import org.junit.jupiter.api.Test;
 
@@ -30,7 +32,7 @@ class BusinessRuleTests {
 
         when(assignmentMapper.selectById(3L)).thenReturn(assignment);
 
-        EnrollmentService service = new EnrollmentService(
+        EnrollmentService service = new EnrollmentServiceImpl(
                 enrollmentMapper,
                 assignmentMapper,
                 gradeMapper,
@@ -44,7 +46,7 @@ class BusinessRuleTests {
 
     @Test
     void gradeScoreMustBeBetween0And100() {
-        GradeService service = new GradeService(
+        GradeService service = new GradeServiceImpl(
                 mock(GradeMapper.class),
                 mock(EnrollmentMapper.class),
                 mock(AssignmentMapper.class),

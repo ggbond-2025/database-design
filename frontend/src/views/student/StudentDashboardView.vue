@@ -23,6 +23,10 @@
         <strong>我的学分</strong>
         <span>查看触发器维护的已修学分总数</span>
       </RouterLink>
+      <RouterLink class="dashboard-card" to="/student/rank">
+        <strong>我的排名</strong>
+        <span>选择已选课程查看成绩排名</span>
+      </RouterLink>
     </div>
   </section>
 </template>

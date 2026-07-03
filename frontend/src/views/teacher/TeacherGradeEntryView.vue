@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 
 import { teacherGet, teacherPost, teacherPut } from '@/api/modules/teacher'
 import PageContainer from '@/components/PageContainer.vue'
+import { courseOptionLabel, formatDateTime, type Row } from '@/utils/formatters'
 
 const assignmentId = ref<number>()
 const loading = ref(false)
 const saving = ref(false)
-const rows = ref<Record<string, unknown>[]>([])
+const assignments = ref<Row[]>([])
+const rows = ref<Row[]>([])
 const form = reactive({
   gradeId: undefined as number | undefined,
   enrollmentId: undefined as number | undefined,
@@ -25,7 +27,7 @@ async function load() {
   }
 }
 
-function selectRow(row: Record<string, unknown>) {
+function selectRow(row: Row) {
   form.gradeId = row.djx_gradeid13 as number | undefined
   form.enrollmentId = row.djx_enrollmentid13 as number
   form.score = row.djx_score13 as number | undefined
@@ -46,12 +48,23 @@ async function save() {
     saving.value = false
   }
 }
+
+onMounted(async () => {
+  assignments.value = await teacherGet('/statistics/course-averages')
+})
 </script>
 
 <template>
-  <PageContainer title="成绩录入" description="选择开课安排和学生后录入或修改成绩。">
+  <PageContainer title="成绩录入" description="选择本人任课课程和学生后录入或修改成绩。">
     <div class="inline-form">
-      <el-input-number v-model="assignmentId" :min="1" placeholder="开课ID" controls-position="right" />
+      <el-select v-model="assignmentId" class="query-select" placeholder="请选择任课课程">
+        <el-option
+          v-for="assignment in assignments"
+          :key="String(assignment.djx_assignmentid13)"
+          :label="courseOptionLabel(assignment)"
+          :value="Number(assignment.djx_assignmentid13)"
+        />
+      </el-select>
       <el-button type="primary" @click="load">查询名单</el-button>
     </div>
 
@@ -60,13 +73,15 @@ async function save() {
       <el-table-column prop="djx_sno13" label="学号" />
       <el-table-column prop="djx_sname13" label="姓名" />
       <el-table-column prop="djx_score13" label="成绩" />
-      <el-table-column prop="djx_gradedat13" label="录入时间" min-width="170" />
+      <el-table-column label="录入时间" min-width="170">
+        <template #default="{ row }">{{ formatDateTime(row.djx_gradedat13) }}</template>
+      </el-table-column>
     </el-table>
 
     <div class="edit-strip">
-      <span>当前选课ID：{{ form.enrollmentId || '未选择' }}</span>
+      <span>当前选课记录：{{ form.enrollmentId || '未选择' }}</span>
       <el-input-number v-model="form.score" :min="0" :max="100" placeholder="成绩" controls-position="right" />
-      <el-button type="primary" :loading="saving" @click="save">保存成绩</el-button>
+      <el-button type="primary" :disabled="!form.enrollmentId" :loading="saving" @click="save">保存成绩</el-button>
     </div>
   </PageContainer>
 </template>

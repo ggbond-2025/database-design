@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { ElMessageBox } from 'element-plus'
+import type { FormInstance, FormRules } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   DataAnalysis,
   DataBoard,
   Files,
+  Lock,
   Notebook,
   OfficeBuilding,
   Reading,
@@ -16,10 +18,28 @@ import {
   UserFilled
 } from '@element-plus/icons-vue'
 
+import { changePassword } from '@/api/modules/auth'
 import { useAuthStore } from '@/stores/auth'
+import { formatRole } from '@/utils/formatters'
 
 const auth = useAuthStore()
 const route = useRoute()
+const passwordDialogVisible = ref(false)
+const passwordSaving = ref(false)
+const passwordFormRef = ref<FormInstance>()
+const passwordForm = reactive({
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
+const passwordRules: FormRules = {
+  oldPassword: [{ required: true, message: '请输入原密码', trigger: 'blur' }],
+  newPassword: [
+    { required: true, message: '请输入新密码', trigger: 'blur' },
+    { min: 6, message: '新密码长度不能少于6位', trigger: 'blur' }
+  ],
+  confirmPassword: [{ required: true, message: '请再次输入新密码', trigger: 'blur' }]
+}
 
 const menuItems = computed(() => {
   if (auth.role === 'ADMIN') {
@@ -61,6 +81,34 @@ const menuItems = computed(() => {
 })
 
 const activeMenu = computed(() => route.path)
+const roleText = computed(() => formatRole(auth.role))
+
+function openPasswordDialog() {
+  passwordForm.oldPassword = ''
+  passwordForm.newPassword = ''
+  passwordForm.confirmPassword = ''
+  passwordDialogVisible.value = true
+}
+
+async function submitPassword() {
+  const valid = await passwordFormRef.value?.validate()
+  if (!valid) {
+    return
+  }
+  if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+    ElMessage.error('两次输入的新密码不一致')
+    return
+  }
+  passwordSaving.value = true
+  try {
+    await changePassword(passwordForm)
+    ElMessage.success('密码已修改，请重新登录')
+    passwordDialogVisible.value = false
+    await auth.logout()
+  } finally {
+    passwordSaving.value = false
+  }
+}
 
 async function confirmLogout() {
   await ElMessageBox.confirm('确认退出当前账号？', '退出登录', {
@@ -97,10 +145,11 @@ async function confirmLogout() {
         <el-dropdown trigger="click">
           <button class="user-chip" type="button">
             <span>{{ auth.displayName || '未命名用户' }}</span>
-            <small>{{ auth.role }}</small>
+            <small>{{ roleText }}</small>
           </button>
           <template #dropdown>
             <el-dropdown-menu>
+              <el-dropdown-item :icon="Lock" @click="openPasswordDialog">修改密码</el-dropdown-item>
               <el-dropdown-item :icon="SwitchButton" @click="confirmLogout">退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -112,4 +161,22 @@ async function confirmLogout() {
       </el-main>
     </el-container>
   </el-container>
+
+  <el-dialog v-model="passwordDialogVisible" title="修改密码" width="460px">
+    <el-form ref="passwordFormRef" :model="passwordForm" :rules="passwordRules" label-width="96px">
+      <el-form-item label="原密码" prop="oldPassword">
+        <el-input v-model="passwordForm.oldPassword" type="password" show-password autocomplete="current-password" />
+      </el-form-item>
+      <el-form-item label="新密码" prop="newPassword">
+        <el-input v-model="passwordForm.newPassword" type="password" show-password autocomplete="new-password" />
+      </el-form-item>
+      <el-form-item label="确认密码" prop="confirmPassword">
+        <el-input v-model="passwordForm.confirmPassword" type="password" show-password autocomplete="new-password" />
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <el-button @click="passwordDialogVisible = false">取消</el-button>
+      <el-button type="primary" :loading="passwordSaving" @click="submitPassword">保存</el-button>
+    </template>
+  </el-dialog>
 </template>

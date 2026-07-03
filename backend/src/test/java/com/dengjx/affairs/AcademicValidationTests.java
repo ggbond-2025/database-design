@@ -5,26 +5,30 @@ import static org.mockito.Mockito.mock;
 
 import java.math.BigDecimal;
 
-import com.dengjx.affairs.assignment.AssignmentMapper;
-import com.dengjx.affairs.assignment.AssignmentService;
-import com.dengjx.affairs.assignment.dto.AssignmentRequest;
+import com.dengjx.affairs.mapper.AssignmentMapper;
+import com.dengjx.affairs.service.AssignmentService;
+import com.dengjx.affairs.service.impl.AssignmentServiceImpl;
+import com.dengjx.affairs.dto.AssignmentRequest;
 import com.dengjx.affairs.common.BusinessException;
-import com.dengjx.affairs.course.CourseMapper;
-import com.dengjx.affairs.course.CourseService;
-import com.dengjx.affairs.course.dto.CourseRequest;
-import com.dengjx.affairs.student.StudentMapper;
-import com.dengjx.affairs.student.StudentService;
-import com.dengjx.affairs.student.dto.StudentRequest;
-import com.dengjx.affairs.teacher.TeacherMapper;
-import com.dengjx.affairs.teacher.TeacherService;
-import com.dengjx.affairs.teacher.dto.TeacherRequest;
+import com.dengjx.affairs.mapper.CourseMapper;
+import com.dengjx.affairs.service.CourseService;
+import com.dengjx.affairs.service.impl.CourseServiceImpl;
+import com.dengjx.affairs.dto.CourseRequest;
+import com.dengjx.affairs.mapper.StudentMapper;
+import com.dengjx.affairs.service.StudentService;
+import com.dengjx.affairs.service.impl.StudentServiceImpl;
+import com.dengjx.affairs.dto.StudentRequest;
+import com.dengjx.affairs.mapper.TeacherMapper;
+import com.dengjx.affairs.service.TeacherService;
+import com.dengjx.affairs.service.impl.TeacherServiceImpl;
+import com.dengjx.affairs.dto.TeacherRequest;
 import org.junit.jupiter.api.Test;
 
 class AcademicValidationTests {
 
     @Test
     void studentAgeMustBeBetween15And35() {
-        StudentService service = new StudentService(mock(StudentMapper.class));
+        StudentService service = new StudentServiceImpl(mock(StudentMapper.class));
         StudentRequest request = new StudentRequest("20239999", "测试学生", "MALE", 14, 1L, 1L);
 
         assertThatThrownBy(() -> service.create(request))
@@ -34,7 +38,7 @@ class AcademicValidationTests {
 
     @Test
     void teacherAgeMustBeBetween20And75() {
-        TeacherService service = new TeacherService(mock(TeacherMapper.class));
+        TeacherService service = new TeacherServiceImpl(mock(TeacherMapper.class));
         TeacherRequest request = new TeacherRequest("T9999999", "测试教师", "FEMALE", 19, "讲师", "13800009999");
 
         assertThatThrownBy(() -> service.create(request))
@@ -44,7 +48,7 @@ class AcademicValidationTests {
 
     @Test
     void courseHoursAndCreditMustBePositive() {
-        CourseService service = new CourseService(mock(CourseMapper.class));
+        CourseService service = new CourseServiceImpl(mock(CourseMapper.class));
         CourseRequest request = new CourseRequest("CS999", "测试课程", 0, "EXAM", BigDecimal.ONE);
 
         assertThatThrownBy(() -> service.create(request))
@@ -54,7 +58,7 @@ class AcademicValidationTests {
 
     @Test
     void assignmentSemesterAndCapacityMustBeValid() {
-        AssignmentService service = new AssignmentService(mock(AssignmentMapper.class));
+        AssignmentService service = new AssignmentServiceImpl(mock(AssignmentMapper.class));
         AssignmentRequest request = new AssignmentRequest(1L, 1L, 1L, "2023-2024", 3, "REQUIRED", 30, true);
 
         assertThatThrownBy(() -> service.create(request))

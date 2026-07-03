@@ -327,6 +327,41 @@ input {
   margin-bottom: 14px;
 }
 
+.query-select {
+  width: min(520px, 100%);
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.metric-card {
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  padding: 16px;
+  background: #f8fbf8;
+}
+
+.metric-card span {
+  display: block;
+  color: #66756e;
+  font-size: 13px;
+}
+
+.metric-card strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--app-green);
+  font-size: 26px;
+}
+
+.section-alert {
+  margin-bottom: 16px;
+}
+
 @media (max-width: 760px) {
   .login-page {
     padding: 16px;

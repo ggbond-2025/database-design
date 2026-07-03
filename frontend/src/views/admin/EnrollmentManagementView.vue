@@ -8,6 +8,7 @@ import ConfirmDeleteButton from '@/components/ConfirmDeleteButton.vue'
 import PageContainer from '@/components/PageContainer.vue'
 import type { PageResult } from '@/api/modules/crud'
 import { enrollmentStatusOptions } from './adminConfigs'
+import { formatDateTime, formatEnrollmentStatus } from '@/utils/formatters'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -24,8 +25,8 @@ const form = reactive({
 })
 
 const rules: FormRules = {
-  studentId: [{ required: true, message: '请填写学生ID', trigger: 'blur' }],
-  assignmentId: [{ required: true, message: '请填写开课安排ID', trigger: 'blur' }],
+  studentId: [{ required: true, message: '请填写学生编号', trigger: 'blur' }],
+  assignmentId: [{ required: true, message: '请填写开课安排编号', trigger: 'blur' }],
   status: [{ required: true, message: '请选择状态', trigger: 'change' }]
 }
 
@@ -81,12 +82,18 @@ onMounted(load)
     </div>
 
     <el-table v-loading="loading" :data="rows" border class="data-table">
-      <el-table-column prop="enrollmentId" label="ID" width="90" />
-      <el-table-column prop="studentId" label="学生ID" />
-      <el-table-column prop="assignmentId" label="开课ID" />
-      <el-table-column prop="status" label="状态" />
-      <el-table-column prop="selectedAt" label="选课时间" min-width="170" />
-      <el-table-column prop="droppedAt" label="退课时间" min-width="170" />
+      <el-table-column prop="enrollmentId" label="记录编号" width="100" />
+      <el-table-column prop="studentId" label="学生编号" />
+      <el-table-column prop="assignmentId" label="开课安排编号" />
+      <el-table-column label="状态">
+        <template #default="{ row }">{{ formatEnrollmentStatus(row.status) }}</template>
+      </el-table-column>
+      <el-table-column label="选课时间" min-width="170">
+        <template #default="{ row }">{{ formatDateTime(row.selectedAt) }}</template>
+      </el-table-column>
+      <el-table-column label="退课时间" min-width="170">
+        <template #default="{ row }">{{ formatDateTime(row.droppedAt) }}</template>
+      </el-table-column>
       <el-table-column label="操作" width="120" fixed="right">
         <template #default="{ row }">
           <ConfirmDeleteButton message="确认将该记录标记为退选？" @confirm="drop(row)" />
@@ -108,10 +115,10 @@ onMounted(load)
 
     <el-dialog v-model="dialogVisible" title="新增/恢复选课" width="520px">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="110px">
-        <el-form-item label="学生ID" prop="studentId">
+        <el-form-item label="学生编号" prop="studentId">
           <el-input-number v-model="form.studentId" :min="1" class="full-control" controls-position="right" />
         </el-form-item>
-        <el-form-item label="开课安排ID" prop="assignmentId">
+        <el-form-item label="开课安排编号" prop="assignmentId">
           <el-input-number v-model="form.assignmentId" :min="1" class="full-control" controls-position="right" />
         </el-form-item>
         <el-form-item label="状态" prop="status">

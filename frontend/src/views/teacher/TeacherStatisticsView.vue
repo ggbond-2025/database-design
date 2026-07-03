@@ -3,10 +3,11 @@ import { onMounted, ref } from 'vue'
 
 import { teacherGet } from '@/api/modules/teacher'
 import PageContainer from '@/components/PageContainer.vue'
+import { courseOptionLabel, type Row } from '@/utils/formatters'
 
 const loading = ref(false)
-const averages = ref<Record<string, unknown>[]>([])
-const ranks = ref<Record<string, unknown>[]>([])
+const averages = ref<Row[]>([])
+const ranks = ref<Row[]>([])
 const assignmentId = ref<number>()
 
 async function loadAverages() {
@@ -40,7 +41,14 @@ onMounted(loadAverages)
     <section class="stat-section query-section">
       <h2>课程排名</h2>
       <div class="inline-form">
-        <el-input-number v-model="assignmentId" :min="1" placeholder="开课ID" controls-position="right" />
+        <el-select v-model="assignmentId" class="query-select" placeholder="请选择任课课程">
+          <el-option
+            v-for="assignment in averages"
+            :key="String(assignment.djx_assignmentid13)"
+            :label="courseOptionLabel(assignment)"
+            :value="Number(assignment.djx_assignmentid13)"
+          />
+        </el-select>
         <el-button type="primary" @click="loadRank">查询排名</el-button>
       </div>
       <el-table :data="ranks" border>

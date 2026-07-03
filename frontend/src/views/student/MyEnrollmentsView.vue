@@ -5,9 +5,10 @@ import { ElMessage } from 'element-plus'
 import { studentDelete, studentGet } from '@/api/modules/student'
 import ConfirmDeleteButton from '@/components/ConfirmDeleteButton.vue'
 import PageContainer from '@/components/PageContainer.vue'
+import { formatDateTime, formatEnrollmentStatus, type Row } from '@/utils/formatters'
 
 const loading = ref(false)
-const rows = ref<Record<string, unknown>[]>([])
+const rows = ref<Row[]>([])
 
 async function load() {
   loading.value = true
@@ -18,7 +19,7 @@ async function load() {
   }
 }
 
-async function drop(row: Record<string, unknown>) {
+async function drop(row: Row) {
   await studentDelete(`/enrollments/${row.djx_assignmentid13}`)
   ElMessage.success('退课成功')
   await load()
@@ -32,8 +33,16 @@ onMounted(load)
     <el-table v-loading="loading" :data="rows" border class="data-table">
       <el-table-column prop="djx_coursename13" label="课程" />
       <el-table-column prop="djx_tname13" label="教师" />
-      <el-table-column prop="djx_status13" label="状态" />
-      <el-table-column prop="djx_selectedat13" label="选课时间" min-width="170" />
+      <el-table-column label="状态">
+        <template #default="{ row }">
+          <el-tag :type="row.djx_status13 === 'DROPPED' ? 'info' : 'success'">
+            {{ formatEnrollmentStatus(row.djx_status13) }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="选课时间" min-width="170">
+        <template #default="{ row }">{{ formatDateTime(row.djx_selectedat13) }}</template>
+      </el-table-column>
       <el-table-column label="操作" width="120">
         <template #default="{ row }">
           <ConfirmDeleteButton

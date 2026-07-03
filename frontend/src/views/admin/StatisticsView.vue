@@ -3,6 +3,7 @@ import { onMounted, reactive, ref } from 'vue'
 
 import { getAdminList } from '@/api/modules/admin'
 import PageContainer from '@/components/PageContainer.vue'
+import { formatSemester } from '@/utils/formatters'
 
 const loading = ref(false)
 const regionRows = ref<Record<string, unknown>[]>([])
@@ -73,6 +74,10 @@ onMounted(loadBaseStats)
           <h2>课程平均分</h2>
           <el-table :data="averageRows" border>
             <el-table-column prop="djx_coursename13" label="课程" />
+            <el-table-column prop="djx_academicyear13" label="学年" />
+            <el-table-column label="学期">
+              <template #default="{ row }">{{ formatSemester(row.djx_semester13) }}</template>
+            </el-table-column>
             <el-table-column prop="djx_averagescore13" label="平均分" />
             <el-table-column prop="djx_maxscore13" label="最高分" />
             <el-table-column prop="djx_minscore13" label="最低分" />
@@ -110,15 +115,17 @@ onMounted(loadBaseStats)
       </div>
 
       <section class="stat-section query-section">
-        <h2>学生学年成绩</h2>
-        <div class="inline-form">
-          <el-input-number v-model="query.studentId" :min="1" placeholder="学生ID" controls-position="right" />
+          <h2>学生学年成绩</h2>
+          <div class="inline-form">
+          <el-input-number v-model="query.studentId" :min="1" placeholder="学生编号" controls-position="right" />
           <el-input v-model="query.academicYear" placeholder="学年，例如 2023-2024" />
           <el-button type="primary" @click="loadYearScores">查询</el-button>
         </div>
         <el-table :data="yearScoreRows" border>
           <el-table-column prop="djx_coursename13" label="课程" />
-          <el-table-column prop="djx_semester13" label="学期" />
+          <el-table-column label="学期">
+            <template #default="{ row }">{{ formatSemester(row.djx_semester13) }}</template>
+          </el-table-column>
           <el-table-column prop="djx_score13" label="成绩" />
           <el-table-column prop="djx_credit13" label="学分" />
           <el-table-column prop="djx_tname13" label="教师" />
@@ -128,7 +135,7 @@ onMounted(loadBaseStats)
       <section class="stat-section query-section">
         <h2>课程排名</h2>
         <div class="inline-form">
-          <el-input-number v-model="query.assignmentId" :min="1" placeholder="开课ID" controls-position="right" />
+          <el-input-number v-model="query.assignmentId" :min="1" placeholder="开课编号" controls-position="right" />
           <el-button type="primary" @click="loadRank">查询</el-button>
         </div>
         <el-table :data="rankRows" border>
