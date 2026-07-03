@@ -7,18 +7,18 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("Dengjx_Classes13")
+@TableName("dengjx_classes13")
 public class SchoolClass {
 
-    @TableId(value = "djx_ClassId13", type = IdType.AUTO)
+    @TableId(value = "djx_classid13", type = IdType.AUTO)
     private Long classId;
 
-    @TableField("djx_ClassName13")
+    @TableField("djx_classname13")
     private String className;
 
-    @TableField("djx_MajorId13")
+    @TableField("djx_majorid13")
     private Long majorId;
 
-    @TableField("djx_GradeYear13")
+    @TableField("djx_gradeyear13")
     private Integer gradeYear;
 }

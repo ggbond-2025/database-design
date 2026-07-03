@@ -7,12 +7,12 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("Dengjx_Regions13")
+@TableName("dengjx_regions13")
 public class Region {
 
-    @TableId(value = "djx_RegionId13", type = IdType.AUTO)
+    @TableId(value = "djx_regionid13", type = IdType.AUTO)
     private Long regionId;
 
-    @TableField("djx_RegionName13")
+    @TableField("djx_regionname13")
     private String regionName;
 }

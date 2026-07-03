@@ -1,6 +1,7 @@
 package com.dengjx.affairs.security;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -40,7 +41,13 @@ class SecurityResponseTests {
     @Test
     void protectedApiWithoutTokenReturnsUnauthorized() throws Exception {
         mockMvc.perform(get("/api/admin/regions"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("未登录或登录已过期"))
+                .andExpect(jsonPath("$.data.code").value("AUTHENTICATION_ERROR"))
+                .andExpect(jsonPath("$.data.path").value("/api/admin/regions"))
+                .andExpect(jsonPath("$.data.method").value("GET"))
+                .andExpect(jsonPath("$.data.traceId").isNotEmpty());
     }
 
     @Test
@@ -56,7 +63,13 @@ class SecurityResponseTests {
 
         mockMvc.perform(get("/api/admin/regions")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("没有权限访问该资源"))
+                .andExpect(jsonPath("$.data.code").value("ACCESS_DENIED"))
+                .andExpect(jsonPath("$.data.path").value("/api/admin/regions"))
+                .andExpect(jsonPath("$.data.method").value("GET"))
+                .andExpect(jsonPath("$.data.traceId").isNotEmpty());
     }
 
     @Test

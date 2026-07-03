@@ -9,30 +9,30 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("Dengjx_Students13")
+@TableName("dengjx_students13")
 public class Student {
 
-    @TableId(value = "djx_StudentId13", type = IdType.AUTO)
+    @TableId(value = "djx_studentid13", type = IdType.AUTO)
     private Long studentId;
 
-    @TableField("djx_Sno13")
+    @TableField("djx_sno13")
     private String sno;
 
-    @TableField("djx_Sname13")
+    @TableField("djx_sname13")
     private String sname;
 
-    @TableField("djx_Gender13")
+    @TableField("djx_gender13")
     private String gender;
 
-    @TableField("djx_Age13")
+    @TableField("djx_age13")
     private Integer age;
 
-    @TableField("djx_ClassId13")
+    @TableField("djx_classid13")
     private Long classId;
 
-    @TableField("djx_RegionId13")
+    @TableField("djx_regionid13")
     private Long regionId;
 
-    @TableField("djx_TotalCredits13")
+    @TableField("djx_totalcredits13")
     private BigDecimal totalCredits;
 }

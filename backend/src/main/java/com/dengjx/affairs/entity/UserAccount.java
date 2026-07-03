@@ -7,27 +7,27 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("Dengjx_Users13")
+@TableName("dengjx_users13")
 public class UserAccount {
 
-    @TableId(value = "djx_UserId13", type = IdType.AUTO)
+    @TableId(value = "djx_userid13", type = IdType.AUTO)
     private Long userId;
 
-    @TableField("djx_Username13")
+    @TableField("djx_username13")
     private String username;
 
-    @TableField(value = "djx_Password13", select = false)
+    @TableField(value = "djx_password13", select = false)
     private String password;
 
-    @TableField("djx_Role13")
+    @TableField("djx_role13")
     private String role;
 
-    @TableField("djx_StudentId13")
+    @TableField("djx_studentid13")
     private Long studentId;
 
-    @TableField("djx_TeacherId13")
+    @TableField("djx_teacherid13")
     private Long teacherId;
 
-    @TableField("djx_Enabled13")
+    @TableField("djx_enabled13")
     private Boolean enabled;
 }

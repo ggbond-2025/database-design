@@ -9,24 +9,24 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("Dengjx_Enrollments13")
+@TableName("dengjx_enrollments13")
 public class Enrollment {
 
-    @TableId(value = "djx_EnrollmentId13", type = IdType.AUTO)
+    @TableId(value = "djx_enrollmentid13", type = IdType.AUTO)
     private Long enrollmentId;
 
-    @TableField("djx_StudentId13")
+    @TableField("djx_studentid13")
     private Long studentId;
 
-    @TableField("djx_AssignmentId13")
+    @TableField("djx_assignmentid13")
     private Long assignmentId;
 
-    @TableField("djx_Status13")
+    @TableField("djx_status13")
     private String status;
 
-    @TableField("djx_SelectedAt13")
+    @TableField("djx_selectedat13")
     private LocalDateTime selectedAt;
 
-    @TableField("djx_DroppedAt13")
+    @TableField("djx_droppedat13")
     private LocalDateTime droppedAt;
 }

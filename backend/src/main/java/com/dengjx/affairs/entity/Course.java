@@ -9,24 +9,24 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("Dengjx_Courses13")
+@TableName("dengjx_courses13")
 public class Course {
 
-    @TableId(value = "djx_CourseId13", type = IdType.AUTO)
+    @TableId(value = "djx_courseid13", type = IdType.AUTO)
     private Long courseId;
 
-    @TableField("djx_CourseCode13")
+    @TableField("djx_coursecode13")
     private String courseCode;
 
-    @TableField("djx_CourseName13")
+    @TableField("djx_coursename13")
     private String courseName;
 
-    @TableField("djx_Hours13")
+    @TableField("djx_hours13")
     private Integer hours;
 
-    @TableField("djx_AssessmentType13")
+    @TableField("djx_assessmenttype13")
     private String assessmentType;
 
-    @TableField("djx_Credit13")
+    @TableField("djx_credit13")
     private BigDecimal credit;
 }

@@ -10,18 +10,18 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 @Data
-@TableName("Dengjx_Grades13")
+@TableName("dengjx_grades13")
 public class Grade {
 
-    @TableId(value = "djx_GradeId13", type = IdType.AUTO)
+    @TableId(value = "djx_gradeid13", type = IdType.AUTO)
     private Long gradeId;
 
-    @TableField("djx_EnrollmentId13")
+    @TableField("djx_enrollmentid13")
     private Long enrollmentId;
 
-    @TableField("djx_Score13")
+    @TableField("djx_score13")
     private BigDecimal score;
 
-    @TableField("djx_GradedAt13")
+    @TableField("djx_gradedat13")
     private LocalDateTime gradedAt;
 }

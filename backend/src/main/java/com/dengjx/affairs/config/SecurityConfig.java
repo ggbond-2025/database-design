@@ -1,10 +1,12 @@
 package com.dengjx.affairs.config;
 
 import com.dengjx.affairs.common.ApiResponse;
+import com.dengjx.affairs.common.ErrorDetail;
 import com.dengjx.affairs.security.JwtAuthenticationFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -49,7 +51,8 @@ public class SecurityConfig {
                                         objectMapper,
                                         HttpServletResponse.SC_UNAUTHORIZED,
                                         "未登录或登录已过期",
-                                        authException.getMessage()))
+                                        "AUTHENTICATION_ERROR",
+                                        authException))
                         .accessDeniedHandler((request, response, accessDeniedException) ->
                                 writeError(
                                         request,
@@ -57,7 +60,8 @@ public class SecurityConfig {
                                         objectMapper,
                                         HttpServletResponse.SC_FORBIDDEN,
                                         "没有权限访问该资源",
-                                        accessDeniedException.getMessage())))
+                                        "ACCESS_DENIED",
+                                        accessDeniedException)))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
@@ -75,18 +79,21 @@ public class SecurityConfig {
             ObjectMapper objectMapper,
             int status,
             String message,
-            String reason) throws java.io.IOException {
+            String code,
+            Throwable exception) throws java.io.IOException {
+        ErrorDetail errorDetail = ErrorDetail.from(code, exception, request, List.of());
         log.warn(
-                "Security request rejected: status={} request={} {} remote={} reason={}",
+                "Security request rejected: traceId={} status={} request={} {} remote={} reason={}",
+                errorDetail.traceId(),
                 status,
                 request.getMethod(),
                 request.getRequestURI(),
                 request.getRemoteAddr(),
-                reason);
+                exception.getMessage());
         response.setStatus(status);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");
-        objectMapper.writeValue(response.getWriter(), ApiResponse.fail(message));
+        objectMapper.writeValue(response.getWriter(), ApiResponse.fail(message, errorDetail));
     }
 
     @Bean
