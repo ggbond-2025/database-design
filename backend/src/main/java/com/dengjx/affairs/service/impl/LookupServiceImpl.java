@@ -1,6 +1,7 @@
 package com.dengjx.affairs.service.impl;
 
 import com.dengjx.affairs.dto.LookupOption;
+import java.util.LinkedHashMap;
 import com.dengjx.affairs.service.LookupService;
 import java.util.List;
 import java.util.Map;
@@ -80,7 +81,8 @@ public class LookupServiceImpl implements LookupService {
                            WHEN 1 THEN '上学期'
                            WHEN 2 THEN '下学期'
                            ELSE mc.djx_targetsemester13 || '学期'
-                       END AS label
+                       END AS label,
+                       c.djx_hours13 AS hours
                 FROM dengjx_majorcourses13 mc
                 JOIN dengjx_majors13 m ON m.djx_majorid13 = mc.djx_majorid13
                 JOIN dengjx_courses13 c ON c.djx_courseid13 = mc.djx_courseid13
@@ -147,6 +149,9 @@ public class LookupServiceImpl implements LookupService {
         if (!(value instanceof Number number)) {
             throw new IllegalStateException("Lookup value must be numeric");
         }
-        return new LookupOption(number.longValue(), String.valueOf(row.get("label")));
+        Map<String, Object> meta = new LinkedHashMap<>(row);
+        meta.remove("value");
+        meta.remove("label");
+        return new LookupOption(number.longValue(), String.valueOf(row.get("label")), meta);
     }
 }

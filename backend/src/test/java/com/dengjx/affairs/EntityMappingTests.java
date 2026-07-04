@@ -15,6 +15,7 @@ import com.dengjx.affairs.entity.Region;
 import com.dengjx.affairs.entity.SchoolClass;
 import com.dengjx.affairs.entity.Student;
 import com.dengjx.affairs.entity.Teacher;
+import com.dengjx.affairs.entity.TeachingEvaluation;
 import com.dengjx.affairs.entity.UserAccount;
 import java.lang.reflect.Field;
 import java.util.List;
@@ -34,6 +35,7 @@ class EntityMappingTests {
             SchoolClass.class,
             Student.class,
             Teacher.class,
+            TeachingEvaluation.class,
             UserAccount.class);
 
     @Test

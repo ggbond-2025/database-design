@@ -10,7 +10,11 @@ DROP VIEW IF EXISTS V_Dengjx_TeacherAssignments13;
 
 DROP VIEW IF EXISTS V_Dengjx_StudentGrades13;
 
+DROP VIEW IF EXISTS V_Dengjx_TeachingEvaluations13;
+
 DROP TABLE IF EXISTS Dengjx_Users13;
+
+DROP TABLE IF EXISTS Dengjx_TeachingEvaluations13;
 
 DROP TABLE IF EXISTS Dengjx_Grades13;
 
@@ -176,7 +180,45 @@ CREATE TABLE Dengjx_TeachingAssignments13 (
     -- 选课容量。
     djx_Capacity13 INTEGER NOT NULL CHECK (djx_Capacity13 > 0),
     -- 该教学任务是否开放选课。
-    djx_EnrollmentOpen13 BOOLEAN NOT NULL DEFAULT FALSE
+    djx_EnrollmentOpen13 BOOLEAN NOT NULL DEFAULT FALSE,
+    -- 第一个每周上课日，1到5表示周一到周五。
+    djx_WeekdayOne13 INTEGER NULL CHECK (djx_WeekdayOne13 BETWEEN 1 AND 5),
+    -- 第一个每周上课开始时间。
+    djx_StartTimeOne13 TIME NULL,
+    -- 第一个每周上课结束时间。
+    djx_EndTimeOne13 TIME NULL,
+    -- 第二个每周上课日，1到5表示周一到周五。
+    djx_WeekdayTwo13 INTEGER NULL CHECK (djx_WeekdayTwo13 BETWEEN 1 AND 5),
+    -- 第二个每周上课开始时间。
+    djx_StartTimeTwo13 TIME NULL,
+    -- 第二个每周上课结束时间。
+    djx_EndTimeTwo13 TIME NULL,
+    CONSTRAINT chk_djx_assignment_time_one13 CHECK (
+        (
+            djx_WeekdayOne13 IS NULL
+            AND djx_StartTimeOne13 IS NULL
+            AND djx_EndTimeOne13 IS NULL
+        )
+        OR (
+            djx_WeekdayOne13 IS NOT NULL
+            AND djx_StartTimeOne13 IS NOT NULL
+            AND djx_EndTimeOne13 IS NOT NULL
+            AND djx_StartTimeOne13 < djx_EndTimeOne13
+        )
+    ),
+    CONSTRAINT chk_djx_assignment_time_two13 CHECK (
+        (
+            djx_WeekdayTwo13 IS NULL
+            AND djx_StartTimeTwo13 IS NULL
+            AND djx_EndTimeTwo13 IS NULL
+        )
+        OR (
+            djx_WeekdayTwo13 IS NOT NULL
+            AND djx_StartTimeTwo13 IS NOT NULL
+            AND djx_EndTimeTwo13 IS NOT NULL
+            AND djx_StartTimeTwo13 < djx_EndTimeTwo13
+        )
+    )
 );
 
 -- 选课记录表，保存学生选择教学任务的状态和时间。
@@ -203,6 +245,20 @@ CREATE TABLE Dengjx_Enrollments13 (
         djx_StudentId13,
         djx_AssignmentId13
     )
+);
+
+-- 教学评价表，保存学生对已完成选课记录的一次性最终评价。
+CREATE TABLE Dengjx_TeachingEvaluations13 (
+    -- 教学评价主键编号。
+    djx_EvaluationId13 BIGSERIAL PRIMARY KEY,
+    -- 对应选课记录编号，每条选课记录最多评价一次。
+    djx_EnrollmentId13 BIGINT NOT NULL UNIQUE REFERENCES Dengjx_Enrollments13 (djx_EnrollmentId13),
+    -- 评价等级，1到5表示从非常不满意到非常满意。
+    djx_Rating13 INTEGER NOT NULL CHECK (djx_Rating13 BETWEEN 1 AND 5),
+    -- 评价理由，可为空。
+    djx_Comment13 VARCHAR(500) NULL,
+    -- 评价提交时间。
+    djx_EvaluatedAt13 TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 成绩信息表，保存学生选课记录对应的课程成绩。
@@ -269,6 +325,8 @@ CREATE INDEX idx_djx_assignments_teacher13 ON Dengjx_TeachingAssignments13 (djx_
 CREATE INDEX idx_djx_assignments_class13 ON Dengjx_TeachingAssignments13 (djx_ClassId13);
 
 CREATE INDEX idx_djx_enrollments_student13 ON Dengjx_Enrollments13 (djx_StudentId13);
+
+CREATE INDEX idx_djx_evaluations_rating13 ON Dengjx_TeachingEvaluations13 (djx_Rating13);
 
 CREATE INDEX idx_djx_grades_score13 ON Dengjx_Grades13 (djx_Score13);
 

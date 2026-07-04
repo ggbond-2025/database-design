@@ -10,6 +10,8 @@ DROP VIEW IF EXISTS V_Dengjx_TeacherAssignments13;
 
 DROP VIEW IF EXISTS V_Dengjx_StudentGrades13;
 
+DROP VIEW IF EXISTS V_Dengjx_TeachingEvaluations13;
+
 CREATE OR REPLACE VIEW V_Dengjx_StudentGrades13 AS
 SELECT
     s.djx_StudentId13,
@@ -43,6 +45,35 @@ FROM
 WHERE
     e.djx_Status13 <> 'DROPPED';
 
+CREATE OR REPLACE VIEW V_Dengjx_TeachingEvaluations13 AS
+SELECT
+    ev.djx_EvaluationId13,
+    ev.djx_Rating13,
+    ev.djx_Comment13,
+    ev.djx_EvaluatedAt13,
+    e.djx_EnrollmentId13,
+    s.djx_StudentId13,
+    s.djx_Sno13,
+    s.djx_Sname13,
+    a.djx_AssignmentId13,
+    c.djx_CourseCode13,
+    c.djx_CourseName13,
+    cl.djx_ClassName13,
+    t.djx_TeacherId13,
+    t.djx_Tno13,
+    t.djx_Tname13,
+    a.djx_AcademicYear13,
+    a.djx_Semester13
+FROM
+    Dengjx_TeachingEvaluations13 ev
+    JOIN Dengjx_Enrollments13 e ON e.djx_EnrollmentId13 = ev.djx_EnrollmentId13
+    JOIN Dengjx_Students13 s ON s.djx_StudentId13 = e.djx_StudentId13
+    JOIN Dengjx_TeachingAssignments13 a ON a.djx_AssignmentId13 = e.djx_AssignmentId13
+    JOIN Dengjx_Classes13 cl ON cl.djx_ClassId13 = a.djx_ClassId13
+    JOIN Dengjx_MajorCourses13 mc ON mc.djx_MajorCourseId13 = a.djx_MajorCourseId13
+    JOIN Dengjx_Courses13 c ON c.djx_CourseId13 = mc.djx_CourseId13
+    JOIN Dengjx_Teachers13 t ON t.djx_TeacherId13 = a.djx_TeacherId13;
+
 CREATE OR REPLACE VIEW V_Dengjx_TeacherAssignments13 AS
 SELECT
     t.djx_TeacherId13,
@@ -61,6 +92,12 @@ SELECT
     mc.djx_TargetSemester13,
     a.djx_Capacity13,
     a.djx_EnrollmentOpen13,
+    a.djx_WeekdayOne13,
+    a.djx_StartTimeOne13,
+    a.djx_EndTimeOne13,
+    a.djx_WeekdayTwo13,
+    a.djx_StartTimeTwo13,
+    a.djx_EndTimeTwo13,
     COUNT(
         CASE
             WHEN e.djx_Status13 IN ('SELECTED', 'COMPLETED') THEN e.djx_EnrollmentId13
@@ -89,7 +126,13 @@ GROUP BY
     mc.djx_TargetGrade13,
     mc.djx_TargetSemester13,
     a.djx_Capacity13,
-    a.djx_EnrollmentOpen13;
+    a.djx_EnrollmentOpen13,
+    a.djx_WeekdayOne13,
+    a.djx_StartTimeOne13,
+    a.djx_EndTimeOne13,
+    a.djx_WeekdayTwo13,
+    a.djx_StartTimeTwo13,
+    a.djx_EndTimeTwo13;
 
 CREATE OR REPLACE VIEW V_Dengjx_ClassCourses13 AS
 SELECT
@@ -106,6 +149,12 @@ SELECT
     a.djx_AssignmentId13,
     a.djx_AcademicYear13,
     a.djx_Semester13,
+    a.djx_WeekdayOne13,
+    a.djx_StartTimeOne13,
+    a.djx_EndTimeOne13,
+    a.djx_WeekdayTwo13,
+    a.djx_StartTimeTwo13,
+    a.djx_EndTimeTwo13,
     mc.djx_CourseType13,
     mc.djx_TargetGrade13,
     mc.djx_TargetSemester13

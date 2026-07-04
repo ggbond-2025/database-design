@@ -18,6 +18,7 @@ class AcademicTermTests {
 
         assertThat(term.grade()).isEqualTo(3);
         assertThat(term.semester()).isEqualTo(2);
+        assertThat(term.academicYear()).isEqualTo("2025-2026");
         assertThat(term.label()).isEqualTo("大三下学期");
     }
 }

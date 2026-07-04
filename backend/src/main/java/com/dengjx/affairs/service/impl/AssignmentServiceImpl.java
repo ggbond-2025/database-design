@@ -8,6 +8,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.dengjx.affairs.dto.AssignmentRequest;
 import com.dengjx.affairs.common.BusinessException;
 import com.dengjx.affairs.common.PageResult;
+import java.time.LocalTime;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -15,9 +18,16 @@ import org.springframework.util.StringUtils;
 public class AssignmentServiceImpl implements AssignmentService {
 
     private final AssignmentMapper assignmentMapper;
+    private final JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    public AssignmentServiceImpl(AssignmentMapper assignmentMapper, JdbcTemplate jdbcTemplate) {
+        this.assignmentMapper = assignmentMapper;
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
     public AssignmentServiceImpl(AssignmentMapper assignmentMapper) {
-        this.assignmentMapper = assignmentMapper;
+        this(assignmentMapper, null);
     }
 
     public PageResult<Assignment> list(String keyword, long page, long size) {
@@ -67,6 +77,17 @@ public class AssignmentServiceImpl implements AssignmentService {
         if (request.capacity() == null || request.capacity() <= 0) {
             throw new BusinessException("课程容量必须大于0");
         }
+        validateSlot("第一个上课时间", request.weekdayOne(), request.startTimeOne(), request.endTimeOne());
+        validateSlot("第二个上课时间", request.weekdayTwo(), request.startTimeTwo(), request.endTimeTwo());
+        Integer hours = courseHours(request.majorCourseId());
+        if (hours != null) {
+            if (hours >= 48 && !hasSlot(request.weekdayTwo(), request.startTimeTwo(), request.endTimeTwo())) {
+                throw new BusinessException(hours + "学时课程需要配置第二个上课时间");
+            }
+            if (hours == 32 && !hasSlot(request.weekdayOne(), request.startTimeOne(), request.endTimeOne())) {
+                throw new BusinessException("32学时课程需要配置第一个上课时间");
+            }
+        }
     }
 
     private void apply(AssignmentRequest request, Assignment assignment) {
@@ -77,5 +98,43 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignment.setSemester(request.semester());
         assignment.setCapacity(request.capacity());
         assignment.setEnrollmentOpen(Boolean.TRUE.equals(request.enrollmentOpen()));
+        assignment.setWeekdayOne(request.weekdayOne());
+        assignment.setStartTimeOne(request.startTimeOne());
+        assignment.setEndTimeOne(request.endTimeOne());
+        assignment.setWeekdayTwo(request.weekdayTwo());
+        assignment.setStartTimeTwo(request.startTimeTwo());
+        assignment.setEndTimeTwo(request.endTimeTwo());
+    }
+
+    private void validateSlot(String label, Integer weekday, LocalTime startTime, LocalTime endTime) {
+        boolean hasAny = weekday != null || startTime != null || endTime != null;
+        if (!hasAny) {
+            return;
+        }
+        if (!hasSlot(weekday, startTime, endTime)) {
+            throw new BusinessException(label + "必须完整配置星期、开始时间和结束时间");
+        }
+        if (weekday < 1 || weekday > 5) {
+            throw new BusinessException(label + "的星期必须为周一到周五");
+        }
+        if (!startTime.isBefore(endTime)) {
+            throw new BusinessException(label + "的开始时间必须早于结束时间");
+        }
+    }
+
+    private boolean hasSlot(Integer weekday, LocalTime startTime, LocalTime endTime) {
+        return weekday != null && startTime != null && endTime != null;
+    }
+
+    private Integer courseHours(Long majorCourseId) {
+        if (jdbcTemplate == null || majorCourseId == null) {
+            return null;
+        }
+        return jdbcTemplate.queryForObject("""
+                SELECT c.djx_hours13
+                FROM dengjx_majorcourses13 mc
+                JOIN dengjx_courses13 c ON c.djx_courseid13 = mc.djx_courseid13
+                WHERE mc.djx_majorcourseid13 = ?
+                """, Integer.class, majorCourseId);
     }
 }

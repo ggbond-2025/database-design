@@ -29,9 +29,23 @@ const editingId = ref<number | string | null>(null)
 
 const tableFields = computed(() => props.config.fields.filter((field) => field.table !== false))
 const formFields = computed(() => props.config.fields.filter((field) => field.form !== false))
+const visibleFormFields = computed(() => formFields.value.filter((field) => isFieldVisible(field)))
+const formGroups = computed(() => {
+  const groups: { title: string; fields: FieldConfig[] }[] = []
+  for (const field of visibleFormFields.value) {
+    const title = field.group ?? ''
+    let group = groups.find((item) => item.title === title)
+    if (!group) {
+      group = { title, fields: [] }
+      groups.push(group)
+    }
+    group.fields.push(field)
+  }
+  return groups
+})
 const rules = computed<FormRules>(() => {
   return Object.fromEntries(
-    formFields.value
+    visibleFormFields.value
       .filter((field) => field.required)
       .map((field) => [field.prop, [{ required: true, message: `请填写${field.label}`, trigger: 'blur' }]])
   )
@@ -101,11 +115,12 @@ async function save() {
   }
   saving.value = true
   try {
+    const payload = buildPayload()
     if (editingId.value) {
-      await crudApi.update(props.config.resource, editingId.value, form)
+      await crudApi.update(props.config.resource, editingId.value, payload)
       ElMessage.success('修改成功')
     } else {
-      await crudApi.create(props.config.resource, form)
+      await crudApi.create(props.config.resource, payload)
       ElMessage.success('新增成功')
     }
     dialogVisible.value = false
@@ -113,6 +128,25 @@ async function save() {
   } finally {
     saving.value = false
   }
+}
+
+function buildPayload() {
+  const payload: Record<string, unknown> = {}
+  for (const field of formFields.value) {
+    if (!isFieldVisible(field)) {
+      if (field.hiddenPayload) {
+        Object.assign(payload, field.hiddenPayload)
+      }
+      continue
+    }
+    const value = form[field.prop]
+    payload[field.prop] = value
+    const relatedValues = field.relatedFields?.[String(value ?? '')]
+    if (relatedValues) {
+      Object.assign(payload, relatedValues)
+    }
+  }
+  return payload
 }
 
 async function remove(row: Record<string, unknown>) {
@@ -135,6 +169,14 @@ function fieldOptions(field: FieldConfig) {
     return lookupOptions[field.lookup] ?? field.options ?? []
   }
   return field.options ?? []
+}
+
+function selectedOption(field: FieldConfig) {
+  return fieldOptions(field).find((option) => option.value === form[field.prop])
+}
+
+function isFieldVisible(field: FieldConfig) {
+  return field.visibleWhen?.({ form, option: selectedOption(field), lookupOptions }) ?? true
 }
 
 onMounted(async () => {
@@ -183,38 +225,48 @@ onMounted(async () => {
 
     <el-dialog v-model="dialogVisible" :title="editingId ? '编辑记录' : '新增记录'" width="520px">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="108px">
-        <el-form-item v-for="field in formFields" :key="field.prop" :label="field.label" :prop="field.prop">
-          <el-input-number
-            v-if="field.type === 'number'"
-            v-model="form[field.prop] as number"
-            :min="0"
-            controls-position="right"
-            class="full-control"
-          />
-          <el-switch v-else-if="field.type === 'boolean'" v-model="form[field.prop] as boolean" />
-          <el-date-picker
-            v-else-if="field.type === 'date'"
-            v-model="form[field.prop] as string"
-            type="date"
-            value-format="YYYY-MM-DD"
-            class="full-control"
-          />
-          <el-select
-            v-else-if="field.type === 'select'"
-            v-model="form[field.prop]"
-            class="full-control"
-            filterable
-            clearable
-          >
-            <el-option
-              v-for="option in fieldOptions(field)"
-              :key="String(option.value)"
-              :label="option.label"
-              :value="option.value"
+        <template v-for="group in formGroups" :key="group.title || 'default'">
+          <el-divider v-if="group.title" content-position="left">{{ group.title }}</el-divider>
+          <el-form-item v-for="field in group.fields" :key="field.prop" :label="field.label" :prop="field.prop">
+            <el-input-number
+              v-if="field.type === 'number'"
+              v-model="form[field.prop] as number"
+              :min="0"
+              controls-position="right"
+              class="full-control"
             />
-          </el-select>
-          <el-input v-else v-model="form[field.prop] as string" />
-        </el-form-item>
+            <el-switch v-else-if="field.type === 'boolean'" v-model="form[field.prop] as boolean" />
+            <el-date-picker
+              v-else-if="field.type === 'date'"
+              v-model="form[field.prop] as string"
+              type="date"
+              value-format="YYYY-MM-DD"
+              class="full-control"
+            />
+            <el-time-picker
+              v-else-if="field.type === 'time'"
+              v-model="form[field.prop] as string"
+              value-format="HH:mm:ss"
+              format="HH:mm"
+              class="full-control"
+            />
+            <el-select
+              v-else-if="field.type === 'select'"
+              v-model="form[field.prop]"
+              class="full-control"
+              filterable
+              clearable
+            >
+              <el-option
+                v-for="option in fieldOptions(field)"
+                :key="String(option.value)"
+                :label="option.label"
+                :value="option.value"
+              />
+            </el-select>
+            <el-input v-else v-model="form[field.prop] as string" />
+          </el-form-item>
+        </template>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>

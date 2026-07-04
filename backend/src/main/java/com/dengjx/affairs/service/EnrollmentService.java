@@ -18,6 +18,8 @@ public interface EnrollmentService {
 
     List<Map<String, Object>> mine(Long userId);
 
+    Map<String, Object> schedule(Long userId);
+
     List<Map<String, Object>> assignmentStudents(AuthenticatedUser user, Long assignmentId);
 
     PageResult<Map<String, Object>> adminList(long page, long size);

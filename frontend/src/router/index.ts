@@ -13,6 +13,7 @@ import MajorCourseManagementView from '@/views/admin/MajorCourseManagementView.v
 import RegionManagementView from '@/views/admin/RegionManagementView.vue'
 import StatisticsView from '@/views/admin/StatisticsView.vue'
 import StudentManagementView from '@/views/admin/StudentManagementView.vue'
+import TeachingEvaluationManagementView from '@/views/admin/TeachingEvaluationManagementView.vue'
 import TeacherManagementView from '@/views/admin/TeacherManagementView.vue'
 import UserManagementView from '@/views/admin/UserManagementView.vue'
 import LoginView from '@/views/login/LoginView.vue'
@@ -23,10 +24,13 @@ import MyEnrollmentsView from '@/views/student/MyEnrollmentsView.vue'
 import MyGradesView from '@/views/student/MyGradesView.vue'
 import MyClassmatesView from '@/views/student/MyClassmatesView.vue'
 import MyRankView from '@/views/student/MyRankView.vue'
+import MyScheduleView from '@/views/student/MyScheduleView.vue'
 import StudentProfileView from '@/views/student/StudentProfileView.vue'
 import StudentDashboardView from '@/views/student/StudentDashboardView.vue'
+import TeachingEvaluationsView from '@/views/student/TeachingEvaluationsView.vue'
 import TeacherAssignmentsView from '@/views/teacher/TeacherAssignmentsView.vue'
 import TeacherDashboardView from '@/views/teacher/TeacherDashboardView.vue'
+import TeacherEvaluationsView from '@/views/teacher/TeacherEvaluationsView.vue'
 import TeacherEnrollmentListView from '@/views/teacher/TeacherEnrollmentListView.vue'
 import TeacherGradeEntryView from '@/views/teacher/TeacherGradeEntryView.vue'
 import TeacherProfileView from '@/views/teacher/TeacherProfileView.vue'
@@ -106,6 +110,11 @@ const router = createRouter({
           meta: { role: 'ADMIN' }
         },
         {
+          path: 'admin/evaluations',
+          component: TeachingEvaluationManagementView,
+          meta: { role: 'ADMIN' }
+        },
+        {
           path: 'admin/statistics',
           component: StatisticsView,
           meta: { role: 'ADMIN' }
@@ -137,6 +146,11 @@ const router = createRouter({
           meta: { role: 'TEACHER' }
         },
         {
+          path: 'teacher/evaluations',
+          component: TeacherEvaluationsView,
+          meta: { role: 'TEACHER' }
+        },
+        {
           path: 'teacher/statistics',
           component: TeacherStatisticsView,
           meta: { role: 'TEACHER' }
@@ -165,6 +179,16 @@ const router = createRouter({
         {
           path: 'student/courses',
           component: MyCoursesView,
+          meta: { role: 'STUDENT' }
+        },
+        {
+          path: 'student/schedule',
+          component: MyScheduleView,
+          meta: { role: 'STUDENT' }
+        },
+        {
+          path: 'student/evaluations',
+          component: TeachingEvaluationsView,
           meta: { role: 'STUDENT' }
         },
         {

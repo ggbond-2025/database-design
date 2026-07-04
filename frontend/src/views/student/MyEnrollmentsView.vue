@@ -6,7 +6,7 @@ import { useRouter } from 'vue-router'
 import { studentDelete, studentGet } from '@/api/modules/student'
 import ConfirmDeleteButton from '@/components/ConfirmDeleteButton.vue'
 import PageContainer from '@/components/PageContainer.vue'
-import { formatCourseType, formatDateTime, formatEnrollmentStatus, type Row } from '@/utils/formatters'
+import { formatCourseType, formatDateTime, formatEnrollmentStatus, formatScheduleSlots, type Row } from '@/utils/formatters'
 
 const loading = ref(false)
 const rows = ref<Row[]>([])
@@ -47,12 +47,15 @@ function openRank(row: Row) {
 </script>
 
 <template>
-  <PageContainer title="我的选课" description="查看已选、退选和已完成课程记录。">
+  <PageContainer title="我的选课" description="仅查看本学期已选、退选和已完成课程记录。">
     <el-table v-loading="loading" :data="rows" border class="data-table">
       <el-table-column prop="djx_coursename13" label="课程" />
       <el-table-column prop="djx_tname13" label="教师" />
       <el-table-column label="课程类型">
         <template #default="{ row }">{{ formatCourseType(row.djx_coursetype13) }}</template>
+      </el-table-column>
+      <el-table-column label="上课时间" min-width="220">
+        <template #default="{ row }">{{ formatScheduleSlots(row) }}</template>
       </el-table-column>
       <el-table-column label="状态">
         <template #default="{ row }">

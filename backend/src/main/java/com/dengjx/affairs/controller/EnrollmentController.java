@@ -52,6 +52,11 @@ public class EnrollmentController {
         return ApiResponse.ok(enrollmentService.mine(user.userId()));
     }
 
+    @GetMapping("/api/student/schedule")
+    public ApiResponse<Map<String, Object>> schedule(@AuthenticationPrincipal AuthenticatedUser user) {
+        return ApiResponse.ok(enrollmentService.schedule(user.userId()));
+    }
+
     @GetMapping("/api/teacher/enrollments/assignments/{assignmentId}/students")
     public ApiResponse<List<Map<String, Object>>> assignmentStudents(
             @AuthenticationPrincipal AuthenticatedUser user,

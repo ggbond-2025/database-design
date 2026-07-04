@@ -1,4 +1,5 @@
-import type { CrudPageConfig } from '@/components/crudTypes'
+import type { CrudPageConfig, FieldVisibilityContext } from '@/components/crudTypes'
+import { classPeriodOptions, classPeriodRelatedFields } from '@/utils/classPeriods'
 
 export const genderOptions = [
   { label: '男', value: 'MALE' },
@@ -20,6 +21,24 @@ export const enrollmentStatusOptions = [
   { label: '已退', value: 'DROPPED' },
   { label: '已完成', value: 'COMPLETED' }
 ]
+
+export const weekdayOptions = [
+  { label: '周一', value: 1 },
+  { label: '周二', value: 2 },
+  { label: '周三', value: 3 },
+  { label: '周四', value: 4 },
+  { label: '周五', value: 5 }
+]
+
+function selectedMajorCourseHours(context: FieldVisibilityContext) {
+  const majorCourseId = context.form.majorCourseId
+  const option = context.lookupOptions['major-courses']?.find((item) => item.value === majorCourseId)
+  return Number(option?.meta?.hours ?? 0)
+}
+
+function needsSecondScheduleSlot(context: FieldVisibilityContext) {
+  return selectedMajorCourseHours(context) >= 48
+}
 
 export const regionConfig: CrudPageConfig = {
   title: '地区管理',
@@ -150,7 +169,40 @@ export const assignmentConfig: CrudPageConfig = {
       ]
     },
     { prop: 'capacity', label: '容量', type: 'number', required: true },
-    { prop: 'enrollmentOpen', label: '开放选课', type: 'boolean' }
+    { prop: 'enrollmentOpen', label: '开放选课', type: 'boolean' },
+    { prop: 'weekdayOne', label: '上课日1', type: 'select', required: true, options: weekdayOptions, group: '课程时间1' },
+    {
+      prop: 'startTimeOne',
+      label: '上课节次1',
+      type: 'select',
+      required: true,
+      options: classPeriodOptions,
+      relatedFields: classPeriodRelatedFields('endTimeOne'),
+      group: '课程时间1'
+    },
+    { prop: 'endTimeOne', label: '结束时间1', form: false, table: false },
+    {
+      prop: 'weekdayTwo',
+      label: '上课日2',
+      type: 'select',
+      required: true,
+      options: weekdayOptions,
+      group: '课程时间2',
+      visibleWhen: needsSecondScheduleSlot,
+      hiddenPayload: { weekdayTwo: null, startTimeTwo: null, endTimeTwo: null }
+    },
+    {
+      prop: 'startTimeTwo',
+      label: '上课节次2',
+      type: 'select',
+      required: true,
+      options: classPeriodOptions,
+      relatedFields: classPeriodRelatedFields('endTimeTwo'),
+      group: '课程时间2',
+      visibleWhen: needsSecondScheduleSlot,
+      hiddenPayload: { weekdayTwo: null, startTimeTwo: null, endTimeTwo: null }
+    },
+    { prop: 'endTimeTwo', label: '结束时间2', form: false, table: false }
   ]
 }
 

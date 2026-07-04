@@ -4,21 +4,12 @@ import { useRoute } from 'vue-router'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  DataAnalysis,
-  DataBoard,
-  Files,
   Lock,
-  Notebook,
-  OfficeBuilding,
-  Reading,
-  School,
   SwitchButton,
-  Tickets,
-  User,
-  UserFilled
 } from '@element-plus/icons-vue'
 
 import { changePassword } from '@/api/modules/auth'
+import { findActiveMenuGroup, getMenuGroups } from '@/layouts/menuGroups'
 import { useAuthStore } from '@/stores/auth'
 import { formatRole } from '@/utils/formatters'
 
@@ -41,47 +32,10 @@ const passwordRules: FormRules = {
   confirmPassword: [{ required: true, message: '请再次输入新密码', trigger: 'blur' }]
 }
 
-const menuItems = computed(() => {
-  if (auth.role === 'ADMIN') {
-    return [
-      { index: '/admin/dashboard', label: '管理仪表盘', icon: DataBoard },
-      { index: '/admin/majors', label: '专业管理', icon: School },
-      { index: '/admin/classes', label: '班级管理', icon: Files },
-      { index: '/admin/students', label: '学生管理', icon: UserFilled },
-      { index: '/admin/teachers', label: '教师管理', icon: User },
-      { index: '/admin/courses', label: '课程管理', icon: Notebook },
-      { index: '/admin/major-courses', label: '专业课程计划', icon: School },
-      { index: '/admin/assignments', label: '开课安排', icon: Tickets },
-      { index: '/admin/enrollments', label: '选课记录', icon: Reading },
-      { index: '/admin/grades', label: '成绩管理', icon: DataAnalysis },
-      { index: '/admin/statistics', label: '统计查询', icon: DataBoard },
-      { index: '/admin/users', label: '用户账号', icon: User }
-    ]
-  }
-  if (auth.role === 'TEACHER') {
-    return [
-      { index: '/teacher/dashboard', label: '教师工作台', icon: Reading },
-      { index: '/teacher/assignments', label: '我的任课', icon: Notebook },
-      { index: '/teacher/enrollments', label: '选课名单', icon: UserFilled },
-      { index: '/teacher/grades', label: '成绩录入', icon: DataAnalysis },
-      { index: '/teacher/statistics', label: '课程统计', icon: DataBoard },
-      { index: '/teacher/profile', label: '本人信息', icon: User }
-    ]
-  }
-  return [
-    { index: '/student/dashboard', label: '学生中心', icon: UserFilled },
-    { index: '/student/available-courses', label: '可选课程', icon: Tickets },
-    { index: '/student/enrollments', label: '我的选课', icon: Reading },
-    { index: '/student/courses', label: '我的课程', icon: Notebook },
-    { index: '/student/grades', label: '我的成绩', icon: DataAnalysis },
-    { index: '/student/credits', label: '我的学分', icon: DataBoard },
-    { index: '/student/classmates', label: '我的班级', icon: OfficeBuilding },
-    { index: '/student/rank', label: '我的排名', icon: Files },
-    { index: '/student/profile', label: '本人信息', icon: User }
-  ]
-})
-
+const menuGroups = computed(() => getMenuGroups(auth.role))
 const activeMenu = computed(() => route.path)
+const activeMenuGroup = computed(() => findActiveMenuGroup(auth.role, route.path))
+const defaultOpeneds = computed(() => (activeMenuGroup.value ? [activeMenuGroup.value] : []))
 const roleText = computed(() => formatRole(auth.role))
 
 function openPasswordDialog() {
@@ -132,11 +86,23 @@ async function confirmLogout() {
         </div>
       </div>
 
-      <el-menu :default-active="activeMenu" router class="side-menu">
-        <el-menu-item v-for="item in menuItems" :key="item.index" :index="item.index">
-          <el-icon><component :is="item.icon" /></el-icon>
-          <span>{{ item.label }}</span>
-        </el-menu-item>
+      <el-menu
+        :key="`${auth.role}-${activeMenuGroup || 'menu'}`"
+        :default-active="activeMenu"
+        :default-openeds="defaultOpeneds"
+        router
+        class="side-menu"
+      >
+        <el-sub-menu v-for="group in menuGroups" :key="group.index" :index="group.index">
+          <template #title>
+            <el-icon><component :is="group.icon" /></el-icon>
+            <span>{{ group.label }}</span>
+          </template>
+          <el-menu-item v-for="item in group.items" :key="item.index" :index="item.index">
+            <el-icon><component :is="item.icon" /></el-icon>
+            <span>{{ item.label }}</span>
+          </el-menu-item>
+        </el-sub-menu>
       </el-menu>
     </el-aside>
 

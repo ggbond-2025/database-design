@@ -27,6 +27,14 @@ export const assessmentTypeLabels: Record<string, string> = {
   CHECK: '考查'
 }
 
+export const evaluationRatingLabels: Record<string, string> = {
+  1: '非常不满意',
+  2: '不满意',
+  3: '一般',
+  4: '满意',
+  5: '非常满意'
+}
+
 export function formatRole(value: unknown) {
   return formatEnum(value, roleLabels)
 }
@@ -47,11 +55,38 @@ export function formatAssessmentType(value: unknown) {
   return formatEnum(value, assessmentTypeLabels)
 }
 
+export function formatEvaluationRating(value: unknown) {
+  return formatEnum(value, evaluationRatingLabels)
+}
+
 export function formatSemester(value: unknown) {
   if (value === null || value === undefined || value === '') {
     return '-'
   }
   return `第${value}学期`
+}
+
+export function formatWeekday(value: unknown) {
+  const labels = ['周一', '周二', '周三', '周四', '周五']
+  const index = Number(value) - 1
+  return labels[index] ?? '-'
+}
+
+export function formatTime(value: unknown) {
+  if (!value) {
+    return '-'
+  }
+  return String(value).slice(0, 5)
+}
+
+export function formatScheduleSlots(row: Row) {
+  const first = row.djx_weekdayone13
+    ? `${formatWeekday(row.djx_weekdayone13)} ${formatTime(row.djx_starttimeone13)}-${formatTime(row.djx_endtimeone13)}`
+    : ''
+  const second = row.djx_weekdaytwo13
+    ? `${formatWeekday(row.djx_weekdaytwo13)} ${formatTime(row.djx_starttimetwo13)}-${formatTime(row.djx_endtimetwo13)}`
+    : ''
+  return [first, second].filter(Boolean).join('；') || '-'
 }
 
 export function formatBoolean(value: unknown) {

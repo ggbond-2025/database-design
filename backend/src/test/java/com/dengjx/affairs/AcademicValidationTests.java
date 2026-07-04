@@ -31,7 +31,9 @@ import com.dengjx.affairs.service.TeacherService;
 import com.dengjx.affairs.service.impl.TeacherServiceImpl;
 import com.dengjx.affairs.dto.TeacherRequest;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 class AcademicValidationTests {
 
@@ -88,11 +90,83 @@ class AcademicValidationTests {
     @Test
     void assignmentSemesterAndCapacityMustBeValid() {
         AssignmentService service = new AssignmentServiceImpl(mock(AssignmentMapper.class));
-        AssignmentRequest request = new AssignmentRequest(1L, 1L, 1L, "2023-2024", 3, 30, true);
+        AssignmentRequest request = new AssignmentRequest(
+                1L,
+                1L,
+                1L,
+                "2023-2024",
+                3,
+                30,
+                true,
+                1,
+                LocalTime.of(8, 0),
+                LocalTime.of(9, 40),
+                null,
+                null,
+                null);
 
         assertThatThrownBy(() -> service.create(request))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("学期");
+    }
+
+    @Test
+    void assignmentWeekdayMustBeBetweenMondayAndFriday() {
+        AssignmentService service = new AssignmentServiceImpl(mock(AssignmentMapper.class));
+        AssignmentRequest request = new AssignmentRequest(
+                1L,
+                1L,
+                1L,
+                "2023-2024",
+                1,
+                30,
+                true,
+                6,
+                LocalTime.of(8, 0),
+                LocalTime.of(9, 40),
+                null,
+                null,
+                null);
+
+        assertThatThrownBy(() -> service.create(request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("星期");
+    }
+
+    @Test
+    void fortyEightHourAssignmentRequiresSecondSlot() {
+        AssignmentService service = new AssignmentServiceImpl(mock(AssignmentMapper.class), new FixedHoursJdbcTemplate(48));
+        AssignmentRequest request = new AssignmentRequest(
+                1L,
+                1L,
+                1L,
+                "2023-2024",
+                1,
+                30,
+                true,
+                1,
+                LocalTime.of(8, 0),
+                LocalTime.of(9, 40),
+                null,
+                null,
+                null);
+
+        assertThatThrownBy(() -> service.create(request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("48学时课程需要配置第二个上课时间");
+    }
+
+    private static class FixedHoursJdbcTemplate extends JdbcTemplate {
+        private final Integer hours;
+
+        FixedHoursJdbcTemplate(Integer hours) {
+            this.hours = hours;
+        }
+
+        @Override
+        public <T> T queryForObject(String sql, Class<T> requiredType, Object... args) {
+            return requiredType.cast(hours);
+        }
     }
 
     @Test

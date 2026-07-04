@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router'
 
 import { studentGet, studentPost } from '@/api/modules/student'
 import PageContainer from '@/components/PageContainer.vue'
-import { formatAssessmentType, formatCourseType, formatSemester, type Row } from '@/utils/formatters'
+import { formatAssessmentType, formatCourseType, formatScheduleSlots, formatSemester, type Row } from '@/utils/formatters'
 
 const loading = ref(false)
 const rows = ref<Row[]>([])
@@ -75,6 +75,9 @@ onMounted(load)
       </el-table-column>
       <el-table-column label="考核方式">
         <template #default="{ row }">{{ formatAssessmentType(row.djx_assessmenttype13) }}</template>
+      </el-table-column>
+      <el-table-column label="上课时间" min-width="220">
+        <template #default="{ row }">{{ formatScheduleSlots(row) }}</template>
       </el-table-column>
       <el-table-column prop="djx_capacity13" label="容量" />
       <el-table-column prop="djx_selectedcount13" label="已选" />

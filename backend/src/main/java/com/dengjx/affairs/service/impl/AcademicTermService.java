@@ -33,7 +33,8 @@ public class AcademicTermService {
                 : admissionDate.getYear() - 1;
         int grade = Math.max(1, academicYearStart - admissionAcademicYear + 1);
         int semester = currentDate.getMonthValue() >= 9 || currentDate.getMonthValue() <= 1 ? 1 : 2;
-        return new AcademicTerm(grade, semester, gradeLabel(grade) + (semester == 1 ? "上学期" : "下学期"));
+        String academicYear = academicYearStart + "-" + (academicYearStart + 1);
+        return new AcademicTerm(grade, semester, academicYear, gradeLabel(grade) + (semester == 1 ? "上学期" : "下学期"));
     }
 
     private String gradeLabel(int grade) {
@@ -46,6 +47,6 @@ public class AcademicTermService {
         };
     }
 
-    public record AcademicTerm(int grade, int semester, String label) {
+    public record AcademicTerm(int grade, int semester, String academicYear, String label) {
     }
 }

@@ -20,7 +20,11 @@ import com.dengjx.affairs.security.AuthenticatedUser;
 import com.dengjx.affairs.security.UserContextService;
 import com.dengjx.affairs.service.EnrollmentSettingService;
 import java.sql.Date;
+import java.sql.Time;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
@@ -82,6 +86,12 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                        t.djx_Tname13,
                        a.djx_AcademicYear13,
                        a.djx_Semester13,
+                       a.djx_WeekdayOne13,
+                       a.djx_StartTimeOne13,
+                       a.djx_EndTimeOne13,
+                       a.djx_WeekdayTwo13,
+                       a.djx_StartTimeTwo13,
+                       a.djx_EndTimeTwo13,
                        mc.djx_CourseType13,
                        mc.djx_TargetGrade13,
                        mc.djx_TargetSemester13,
@@ -96,6 +106,8 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                 WHERE a.djx_EnrollmentOpen13 = TRUE
                   AND mc.djx_CourseType13 = 'ELECTIVE'
                   AND a.djx_ClassId13 = ?
+                  AND a.djx_AcademicYear13 = ?
+                  AND a.djx_Semester13 = ?
                   AND mc.djx_TargetGrade13 = ?
                   AND mc.djx_TargetSemester13 = ?
                   AND NOT EXISTS (
@@ -107,7 +119,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                   )
                 ORDER BY a.djx_AcademicYear13, a.djx_Semester13, c.djx_CourseCode13
                 """;
-        return jdbcTemplate.queryForList(sql, context.classId(), context.grade(), context.semester(), studentId);
+        return jdbcTemplate.queryForList(sql, context.classId(), context.academicYear(), context.semester(), context.grade(), context.semester(), studentId);
     }
 
     @Transactional
@@ -124,11 +136,15 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         }
         StudentTermContext context = studentTermContext(studentId);
         if (!assignment.getClassId().equals(context.classId())
+                || !context.academicYear().equals(assignment.getAcademicYear())
+                || assignment.getSemester() == null
+                || assignment.getSemester() != context.semester()
                 || numberValue(course.get("djx_targetgrade13")).intValue() != context.grade()
                 || numberValue(course.get("djx_targetsemester13")).intValue() != context.semester()) {
             throw new BusinessException("只能选择当前年级学期开放的选修课");
         }
         ensureCapacity(assignment);
+        ensureNoScheduleConflict(context, assignment, numberValue(course.get("djx_hours13")).intValue());
         return createOrRestore(studentId, assignmentId, "SELECTED");
     }
 
@@ -151,7 +167,8 @@ public class EnrollmentServiceImpl implements EnrollmentService {
 
     public List<Map<String, Object>> mine(Long userId) {
         Long studentId = userContextService.getStudentId(userId);
-        autoEnrollRequiredCourses(studentTermContext(studentId));
+        StudentTermContext context = studentTermContext(studentId);
+        autoEnrollRequiredCourses(context);
         String sql = """
                 SELECT e.djx_EnrollmentId13,
                        e.djx_AssignmentId13,
@@ -161,9 +178,16 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                        c.djx_CourseCode13,
                        c.djx_CourseName13,
                        c.djx_Credit13,
+                       c.djx_Hours13,
                        t.djx_Tname13,
                        a.djx_AcademicYear13,
                        a.djx_Semester13,
+                       a.djx_WeekdayOne13,
+                       a.djx_StartTimeOne13,
+                       a.djx_EndTimeOne13,
+                       a.djx_WeekdayTwo13,
+                       a.djx_StartTimeTwo13,
+                       a.djx_EndTimeTwo13,
                        mc.djx_CourseType13,
                        mc.djx_TargetGrade13,
                        mc.djx_TargetSemester13
@@ -173,9 +197,38 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                 JOIN Dengjx_Courses13 c ON c.djx_CourseId13 = mc.djx_CourseId13
                 JOIN Dengjx_Teachers13 t ON t.djx_TeacherId13 = a.djx_TeacherId13
                 WHERE e.djx_StudentId13 = ?
+                  AND a.djx_AcademicYear13 = ?
+                  AND a.djx_Semester13 = ?
+                  AND mc.djx_TargetGrade13 = ?
+                  AND mc.djx_TargetSemester13 = ?
                 ORDER BY e.djx_SelectedAt13 DESC
                 """;
-        return jdbcTemplate.queryForList(sql, studentId);
+        return jdbcTemplate.queryForList(sql, studentId, context.academicYear(), context.semester(), context.grade(), context.semester());
+    }
+
+    public Map<String, Object> schedule(Long userId) {
+        List<Map<String, Object>> rows = mine(userId).stream()
+                .filter(row -> ACTIVE_STATUSES.contains(String.valueOf(row.get("djx_status13"))))
+                .toList();
+        Map<Integer, List<Map<String, Object>>> firstHalf = emptyWeekdayMap();
+        Map<Integer, List<Map<String, Object>>> secondHalf = emptyWeekdayMap();
+        for (Map<String, Object> row : rows) {
+            Assignment assignment = assignmentFromRow(row);
+            int hours = numberValue(row.get("djx_hours13")).intValue();
+            for (AssignmentScheduleRules.EffectiveSlot slot : AssignmentScheduleRules.effectiveSlots(assignment, hours)) {
+                Map<String, Object> item = new LinkedHashMap<>(row);
+                item.put("weekday", slot.weekday());
+                item.put("startTime", slot.startTime().toString());
+                item.put("endTime", slot.endTime().toString());
+                if (slot.firstHalf()) {
+                    firstHalf.get(slot.weekday()).add(item);
+                }
+                if (slot.secondHalf()) {
+                    secondHalf.get(slot.weekday()).add(item);
+                }
+            }
+        }
+        return Map.of("firstHalf", firstHalf, "secondHalf", secondHalf);
     }
 
     public List<Map<String, Object>> assignmentStudents(AuthenticatedUser user, Long assignmentId) {
@@ -274,6 +327,8 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                 JOIN dengjx_majorcourses13 cplan ON cplan.djx_majorcourseid13 = a.djx_majorcourseid13
                 WHERE a.djx_classid13 = ?
                   AND cplan.djx_coursetype13 = 'REQUIRED'
+                  AND a.djx_academicyear13 = ?
+                  AND a.djx_semester13 = ?
                   AND cplan.djx_targetgrade13 = ?
                   AND cplan.djx_targetsemester13 = ?
                   AND NOT EXISTS (
@@ -283,7 +338,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                         AND e.djx_assignmentid13 = a.djx_assignmentid13
                         AND e.djx_status13 IN ('SELECTED', 'COMPLETED')
                   )
-                """, context.classId(), context.grade(), context.semester(), context.studentId());
+                """, context.classId(), context.academicYear(), context.semester(), context.grade(), context.semester(), context.studentId());
         for (Map<String, Object> row : requiredAssignments) {
             Long assignmentId = ((Number) row.get("djx_assignmentid13")).longValue();
             createOrRestore(context.studentId(), assignmentId, "SELECTED");
@@ -304,16 +359,19 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                 ((Number) row.get("djx_studentid13")).longValue(),
                 ((Number) row.get("djx_classid13")).longValue(),
                 term.grade(),
-                term.semester());
+                term.semester(),
+                term.academicYear());
     }
 
     private Map<String, Object> assignmentCourse(Long assignmentId) {
         return jdbcTemplate.queryForMap("""
                 SELECT mc.djx_coursetype13,
                        mc.djx_targetgrade13,
-                       mc.djx_targetsemester13
+                       mc.djx_targetsemester13,
+                       c.djx_hours13
                 FROM dengjx_teachingassignments13 a
                 JOIN dengjx_majorcourses13 mc ON mc.djx_majorcourseid13 = a.djx_majorcourseid13
+                JOIN dengjx_courses13 c ON c.djx_courseid13 = mc.djx_courseid13
                 WHERE a.djx_assignmentid13 = ?
                 """, assignmentId);
     }
@@ -333,6 +391,80 @@ public class EnrollmentServiceImpl implements EnrollmentService {
             return date.toLocalDate();
         }
         throw new BusinessException("学生入学时间配置不完整");
+    }
+
+    private void ensureNoScheduleConflict(StudentTermContext context, Assignment target, int targetHours) {
+        List<AssignmentScheduleRules.EffectiveSlot> targetSlots = AssignmentScheduleRules.effectiveSlots(target, targetHours);
+        if (targetSlots.isEmpty()) {
+            return;
+        }
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList("""
+                SELECT a.djx_assignmentid13,
+                       a.djx_weekdayone13,
+                       a.djx_starttimeone13,
+                       a.djx_endtimeone13,
+                       a.djx_weekdaytwo13,
+                       a.djx_starttimetwo13,
+                       a.djx_endtimetwo13,
+                       c.djx_hours13
+                FROM dengjx_enrollments13 e
+                JOIN dengjx_teachingassignments13 a ON a.djx_assignmentid13 = e.djx_assignmentid13
+                JOIN dengjx_majorcourses13 mc ON mc.djx_majorcourseid13 = a.djx_majorcourseid13
+                JOIN dengjx_courses13 c ON c.djx_courseid13 = mc.djx_courseid13
+                WHERE e.djx_studentid13 = ?
+                  AND e.djx_status13 IN ('SELECTED', 'COMPLETED')
+                  AND a.djx_assignmentid13 <> ?
+                  AND a.djx_academicyear13 = ?
+                  AND a.djx_semester13 = ?
+                """, context.studentId(), target.getAssignmentId(), context.academicYear(), context.semester());
+        for (Map<String, Object> row : rows) {
+            Assignment existing = assignmentFromRow(row);
+            int existingHours = numberValue(row.get("djx_hours13")).intValue();
+            if (AssignmentScheduleRules.hasConflict(targetSlots, AssignmentScheduleRules.effectiveSlots(existing, existingHours))) {
+                throw new BusinessException("该时间段已有课程，不能重复选课");
+            }
+        }
+    }
+
+    private Assignment assignmentFromRow(Map<String, Object> row) {
+        Assignment assignment = new Assignment();
+        assignment.setAssignmentId(longValue(row.get("djx_assignmentid13")));
+        assignment.setWeekdayOne(integerValue(row.get("djx_weekdayone13")));
+        assignment.setStartTimeOne(toLocalTime(row.get("djx_starttimeone13")));
+        assignment.setEndTimeOne(toLocalTime(row.get("djx_endtimeone13")));
+        assignment.setWeekdayTwo(integerValue(row.get("djx_weekdaytwo13")));
+        assignment.setStartTimeTwo(toLocalTime(row.get("djx_starttimetwo13")));
+        assignment.setEndTimeTwo(toLocalTime(row.get("djx_endtimetwo13")));
+        return assignment;
+    }
+
+    private Long longValue(Object value) {
+        return value instanceof Number number ? number.longValue() : null;
+    }
+
+    private Integer integerValue(Object value) {
+        return value instanceof Number number ? number.intValue() : null;
+    }
+
+    private LocalTime toLocalTime(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof LocalTime localTime) {
+            return localTime;
+        }
+        if (value instanceof Time time) {
+            return time.toLocalTime();
+        }
+        return LocalTime.parse(String.valueOf(value));
+    }
+
+    private Map<Integer, List<Map<String, Object>>> emptyWeekdayMap() {
+        Map<Integer, List<Map<String, Object>>> result = new LinkedHashMap<>();
+        for (int weekday = 1; weekday <= 5; weekday++) {
+            result.put(weekday, new ArrayList<>());
+        }
+        return result;
     }
 
     private Enrollment createOrRestore(Long studentId, Long assignmentId, String status) {
@@ -401,6 +533,6 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         return status;
     }
 
-    private record StudentTermContext(Long studentId, Long classId, int grade, int semester) {
+    private record StudentTermContext(Long studentId, Long classId, int grade, int semester, String academicYear) {
     }
 }
