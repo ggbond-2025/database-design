@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -15,6 +16,7 @@ import com.dengjx.affairs.mapper.AssignmentMapper;
 import com.dengjx.affairs.common.BusinessException;
 import com.dengjx.affairs.mapper.EnrollmentMapper;
 import com.dengjx.affairs.service.EnrollmentService;
+import com.dengjx.affairs.service.EnrollmentSettingService;
 import com.dengjx.affairs.service.impl.EnrollmentServiceImpl;
 import com.dengjx.affairs.mapper.GradeMapper;
 import com.dengjx.affairs.service.GradeService;
@@ -55,6 +57,72 @@ class BusinessRuleTests {
         assertThatThrownBy(() -> service.enroll(10L, 3L))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("未开放选课");
+    }
+
+    @Test
+    void studentCannotDropWhenGlobalEnrollmentIsClosed() {
+        EnrollmentMapper enrollmentMapper = mock(EnrollmentMapper.class);
+        AssignmentMapper assignmentMapper = mock(AssignmentMapper.class);
+        GradeMapper gradeMapper = mock(GradeMapper.class);
+        EnrollmentSettingService enrollmentSettingService = mock(EnrollmentSettingService.class);
+        Enrollment enrollment = new Enrollment();
+        enrollment.setEnrollmentId(6L);
+        enrollment.setStudentId(1L);
+        enrollment.setAssignmentId(3L);
+        enrollment.setStatus("SELECTED");
+
+        when(enrollmentSettingService.isEnabled()).thenReturn(false);
+        when(enrollmentMapper.selectOne(any())).thenReturn(enrollment);
+
+        EnrollmentService service = new EnrollmentServiceImpl(
+                enrollmentMapper,
+                assignmentMapper,
+                gradeMapper,
+                new FakeUserContextService(),
+                new FakeEnrollmentJdbcTemplate(),
+                new com.dengjx.affairs.service.impl.AcademicTermService(),
+                enrollmentSettingService);
+
+        assertThatThrownBy(() -> service.studentDrop(10L, 3L))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("当前不在有效选课时间范围内");
+    }
+
+    @Test
+    void availableCoursesBlockedWhenGlobalEnrollmentIsClosed() {
+        EnrollmentSettingService enrollmentSettingService = mock(EnrollmentSettingService.class);
+        when(enrollmentSettingService.isEnabled()).thenReturn(false);
+
+        EnrollmentService service = new EnrollmentServiceImpl(
+                mock(EnrollmentMapper.class),
+                mock(AssignmentMapper.class),
+                mock(GradeMapper.class),
+                new FakeUserContextService(),
+                new FakeStudentTermJdbcTemplate(),
+                new com.dengjx.affairs.service.impl.AcademicTermService(),
+                enrollmentSettingService);
+
+        assertThatThrownBy(() -> service.available(10L))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("当前不在有效选课时间范围内");
+    }
+
+    @Test
+    void mineDoesNotReturnDroppedEnrollmentRows() {
+        FakeStudentTermJdbcTemplate jdbcTemplate = new FakeStudentTermJdbcTemplate();
+        EnrollmentService service = new EnrollmentServiceImpl(
+                mock(EnrollmentMapper.class),
+                mock(AssignmentMapper.class),
+                mock(GradeMapper.class),
+                new FakeUserContextService(),
+                jdbcTemplate,
+                new com.dengjx.affairs.service.impl.AcademicTermService(),
+                mock(EnrollmentSettingService.class));
+
+        service.mine(10L);
+
+        assertThat(jdbcTemplate.lastSql)
+                .contains("e.djx_Status13 IN ('SELECTED', 'COMPLETED')");
     }
 
     @Test
@@ -173,6 +241,33 @@ class BusinessRuleTests {
         @Override
         public List<Map<String, Object>> queryForList(String sql) {
             return rows;
+        }
+    }
+
+    private static class FakeEnrollmentJdbcTemplate extends JdbcTemplate {
+
+        @Override
+        public Map<String, Object> queryForMap(String sql, Object... args) {
+            return Map.of("djx_coursetype13", "ELECTIVE", "djx_targetgrade13", 1, "djx_targetsemester13", 1, "djx_hours13", 32);
+        }
+    }
+
+    private static class FakeStudentTermJdbcTemplate extends JdbcTemplate {
+
+        private String lastSql;
+
+        @Override
+        public Map<String, Object> queryForMap(String sql, Object... args) {
+            return Map.of(
+                    "djx_studentid13", 1L,
+                    "djx_classid13", 1L,
+                    "djx_admissiondate13", LocalDate.of(2025, 9, 1));
+        }
+
+        @Override
+        public List<Map<String, Object>> queryForList(String sql, Object... args) {
+            lastSql = sql;
+            return List.of();
         }
     }
 }

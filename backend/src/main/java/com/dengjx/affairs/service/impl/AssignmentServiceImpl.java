@@ -94,6 +94,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         assignment.setMajorCourseId(request.majorCourseId());
         assignment.setClassId(request.classId());
         assignment.setTeacherId(request.teacherId());
+        assignment.setClassroomId(request.classroomId());
         assignment.setAcademicYear(request.academicYear());
         assignment.setSemester(request.semester());
         assignment.setCapacity(request.capacity());

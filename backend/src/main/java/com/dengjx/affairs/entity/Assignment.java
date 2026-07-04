@@ -23,6 +23,9 @@ public class Assignment {
     @TableField("djx_teacherid13")
     private Long teacherId;
 
+    @TableField("djx_classroomid13")
+    private Long classroomId;
+
     @TableField("djx_academicyear13")
     private String academicYear;
 

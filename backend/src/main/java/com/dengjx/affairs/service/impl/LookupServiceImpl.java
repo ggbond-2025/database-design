@@ -94,10 +94,35 @@ public class LookupServiceImpl implements LookupService {
     public List<LookupOption> classOptions() {
         return queryOptions("""
                 SELECT c.djx_classid13 AS value,
-                       c.djx_classname13 || ' / ' || m.djx_majorname13 AS label
+                       c.djx_classname13 || ' / ' || m.djx_majorname13 AS label,
+                       m.djx_majorid13 AS "majorId"
                 FROM dengjx_classes13 c
                 JOIN dengjx_majors13 m ON m.djx_majorid13 = c.djx_majorid13
                 ORDER BY c.djx_gradeyear13, c.djx_classname13
+                """);
+    }
+
+    @Override
+    public List<LookupOption> teachingBuildingOptions() {
+        return queryOptions("""
+                SELECT djx_buildingid13 AS value,
+                       djx_buildingname13 AS label
+                FROM dengjx_teachingbuildings13
+                ORDER BY djx_buildingname13
+                """);
+    }
+
+    @Override
+    public List<LookupOption> classroomOptions() {
+        return queryOptions("""
+                SELECT cr.djx_classroomid13 AS value,
+                       tb.djx_buildingname13 || ' / ' || cr.djx_classroomname13 AS label,
+                       tb.djx_buildingid13 AS "buildingId",
+                       tb.djx_buildingname13 AS "buildingName",
+                       cr.djx_capacity13 AS capacity
+                FROM dengjx_classrooms13 cr
+                JOIN dengjx_teachingbuildings13 tb ON tb.djx_buildingid13 = cr.djx_buildingid13
+                ORDER BY tb.djx_buildingname13, cr.djx_classroomname13
                 """);
     }
 

@@ -41,6 +41,11 @@ function openRank(row: Row) {
       <el-table-column prop="djx_assignmentid13" label="开课ID" width="100" />
       <el-table-column prop="djx_coursename13" label="课程" />
       <el-table-column prop="djx_classname13" label="班级" />
+      <el-table-column label="上课地点">
+        <template #default="{ row }">
+          {{ [row.djx_buildingname13, row.djx_classroomname13].filter(Boolean).join(' ') || '-' }}
+        </template>
+      </el-table-column>
       <el-table-column prop="djx_academicyear13" label="学年" />
       <el-table-column label="学期" width="100">
         <template #default="{ row }">{{ formatSemester(row.djx_semester13) }}</template>

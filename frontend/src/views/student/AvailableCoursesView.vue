@@ -9,6 +9,8 @@ import { formatAssessmentType, formatCourseType, formatScheduleSlots, formatSeme
 
 const loading = ref(false)
 const rows = ref<Row[]>([])
+const enrollmentClosedMessage = '当前不在有效选课时间范围内！'
+const enrollmentClosed = ref(false)
 const router = useRouter()
 const filters = reactive({
   keyword: '',
@@ -31,11 +33,24 @@ const filteredRows = computed(() => {
 
 async function load() {
   loading.value = true
+  enrollmentClosed.value = false
   try {
     rows.value = await studentGet<Row[]>('/enrollments/available')
+  } catch (error) {
+    rows.value = []
+    const message = errorMessage(error)
+    enrollmentClosed.value = message.includes('当前不在有效选课时间范围内')
   } finally {
     loading.value = false
   }
+}
+
+function errorMessage(error: unknown) {
+  if (error && typeof error === 'object' && 'response' in error) {
+    const response = (error as { response?: { data?: { message?: string } } }).response
+    return response?.data?.message ?? ''
+  }
+  return error instanceof Error ? error.message : ''
 }
 
 async function enroll(row: Row) {
@@ -53,42 +68,46 @@ onMounted(load)
 
 <template>
   <PageContainer title="可选课程" description="仅展示当前年级学期开放的专业选修课。">
-    <div class="inline-form">
-      <el-input v-model="filters.keyword" class="toolbar-search" clearable placeholder="课程、编号或教师" />
-      <el-input v-model="filters.academicYear" class="toolbar-search" clearable placeholder="学年，例如 2023-2024" />
-      <el-select v-model="filters.semester" class="query-select" clearable placeholder="学期">
-        <el-option label="第1学期" :value="1" />
-        <el-option label="第2学期" :value="2" />
-      </el-select>
-      <el-button @click="load">刷新</el-button>
-    </div>
-    <el-table v-loading="loading" :data="filteredRows" border class="data-table">
-      <el-table-column prop="djx_coursecode13" label="课程编号" />
-      <el-table-column prop="djx_coursename13" label="课程" />
-      <el-table-column prop="djx_tname13" label="教师" />
-      <el-table-column prop="djx_academicyear13" label="学年" />
-      <el-table-column label="学期">
-        <template #default="{ row }">{{ formatSemester(row.djx_semester13) }}</template>
-      </el-table-column>
-      <el-table-column label="课程类型">
-        <template #default="{ row }">{{ formatCourseType(row.djx_coursetype13) }}</template>
-      </el-table-column>
-      <el-table-column label="考核方式">
-        <template #default="{ row }">{{ formatAssessmentType(row.djx_assessmenttype13) }}</template>
-      </el-table-column>
-      <el-table-column label="上课时间" min-width="220">
-        <template #default="{ row }">{{ formatScheduleSlots(row) }}</template>
-      </el-table-column>
-      <el-table-column prop="djx_capacity13" label="容量" />
-      <el-table-column prop="djx_selectedcount13" label="已选" />
-      <el-table-column label="剩余名额">
-        <template #default="{ row }">{{ remaining(row) }}</template>
-      </el-table-column>
-      <el-table-column label="操作" width="120">
-        <template #default="{ row }">
-          <el-button type="primary" link @click="enroll(row)">选课</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <el-alert v-if="enrollmentClosed" :title="enrollmentClosedMessage" type="warning" show-icon :closable="false" />
+    <template v-else>
+      <div class="inline-form">
+        <el-input v-model="filters.keyword" class="toolbar-search" clearable placeholder="课程、编号或教师" />
+        <el-input v-model="filters.academicYear" class="toolbar-search" clearable placeholder="学年，例如 2023-2024" />
+        <el-select v-model="filters.semester" class="query-select" clearable placeholder="学期">
+          <el-option label="第1学期" :value="1" />
+          <el-option label="第2学期" :value="2" />
+        </el-select>
+        <el-button @click="load">刷新</el-button>
+      </div>
+      <el-table v-loading="loading" :data="filteredRows" border class="data-table">
+        <el-table-column prop="djx_coursecode13" label="课程编号" />
+        <el-table-column prop="djx_coursename13" label="课程" />
+        <el-table-column prop="djx_tname13" label="教师" />
+        <el-table-column prop="djx_academicyear13" label="学年" />
+        <el-table-column label="学期">
+          <template #default="{ row }">{{ formatSemester(row.djx_semester13) }}</template>
+        </el-table-column>
+        <el-table-column label="课程类型">
+          <template #default="{ row }">{{ formatCourseType(row.djx_coursetype13) }}</template>
+        </el-table-column>
+        <el-table-column label="考核方式">
+          <template #default="{ row }">{{ formatAssessmentType(row.djx_assessmenttype13) }}</template>
+        </el-table-column>
+        <el-table-column label="上课时间" min-width="220">
+          <template #default="{ row }">{{ formatScheduleSlots(row) }}</template>
+        </el-table-column>
+        <el-table-column prop="djx_classroomlabel13" label="上课地点" />
+        <el-table-column prop="djx_capacity13" label="容量" />
+        <el-table-column prop="djx_selectedcount13" label="已选" />
+        <el-table-column label="剩余名额">
+          <template #default="{ row }">{{ remaining(row) }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="120">
+          <template #default="{ row }">
+            <el-button type="primary" link @click="enroll(row)">选课</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </template>
   </PageContainer>
 </template>

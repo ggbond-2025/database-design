@@ -19,6 +19,10 @@ public interface LookupService {
 
     List<LookupOption> classOptions();
 
+    List<LookupOption> teachingBuildingOptions();
+
+    List<LookupOption> classroomOptions();
+
     List<LookupOption> assignmentOptions();
 
     List<LookupOption> activeEnrollmentOptions();

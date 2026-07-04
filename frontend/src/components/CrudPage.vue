@@ -139,6 +139,9 @@ function buildPayload() {
       }
       continue
     }
+    if (field.payload === false) {
+      continue
+    }
     const value = form[field.prop]
     payload[field.prop] = value
     const relatedValues = field.relatedFields?.[String(value ?? '')]
@@ -165,10 +168,11 @@ function renderValue(row: Record<string, unknown>, field: FieldConfig) {
 }
 
 function fieldOptions(field: FieldConfig) {
-  if (field.lookup) {
-    return lookupOptions[field.lookup] ?? field.options ?? []
+  const options = field.lookup ? lookupOptions[field.lookup] ?? field.options ?? [] : field.options ?? []
+  if (!field.optionFilter) {
+    return options
   }
-  return field.options ?? []
+  return options.filter((option) => field.optionFilter?.(option, { form, lookupOptions }) ?? true)
 }
 
 function selectedOption(field: FieldConfig) {
@@ -248,6 +252,14 @@ onMounted(async () => {
               v-model="form[field.prop] as string"
               value-format="HH:mm:ss"
               format="HH:mm"
+              class="full-control"
+            />
+            <el-date-picker
+              v-else-if="field.type === 'datetime'"
+              v-model="form[field.prop] as string"
+              type="datetime"
+              value-format="YYYY-MM-DDTHH:mm:ss"
+              format="YYYY-MM-DD HH:mm"
               class="full-control"
             />
             <el-select

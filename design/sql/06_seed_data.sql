@@ -6,7 +6,11 @@ DELETE FROM Dengjx_Grades13;
 
 DELETE FROM Dengjx_Enrollments13;
 
+DELETE FROM Dengjx_MajorTransferApplications13;
+
 DELETE FROM Dengjx_TeachingAssignments13;
+
+DELETE FROM Dengjx_FinalExams13;
 
 DELETE FROM Dengjx_EnrollmentSettings13;
 
@@ -19,6 +23,10 @@ DELETE FROM Dengjx_Teachers13;
 DELETE FROM Dengjx_Students13;
 
 DELETE FROM Dengjx_Classes13;
+
+DELETE FROM Dengjx_Classrooms13;
+
+DELETE FROM Dengjx_TeachingBuildings13;
 
 DELETE FROM Dengjx_Majors13;
 
@@ -69,6 +77,38 @@ FROM (
             ('大数据2502', '数据科学与大数据技术')
     ) AS v (class_name, major_name)
     JOIN Dengjx_Majors13 m ON m.djx_MajorName13 = v.major_name;
+
+INSERT INTO
+    Dengjx_TeachingBuildings13 (djx_BuildingName13)
+VALUES ('健行楼'),
+    ('广知楼'),
+    ('博易楼'),
+    ('仁和楼'),
+    ('法学楼');
+
+INSERT INTO
+    Dengjx_Classrooms13 (
+        djx_BuildingId13,
+        djx_ClassroomName13,
+        djx_Capacity13
+    )
+SELECT
+    b.djx_BuildingId13,
+    v.classroom_name,
+    v.capacity
+FROM (
+        VALUES ('健行楼', 'B201', 80),
+            ('健行楼', 'B305', 80),
+            ('广知楼', 'A101', 90),
+            ('广知楼', 'C203', 90),
+            ('博易楼', 'C109', 70),
+            ('博易楼', 'B208', 70),
+            ('仁和楼', '105', 60),
+            ('仁和楼', '203', 60),
+            ('法学楼', 'B101', 80),
+            ('法学楼', 'B306', 80)
+    ) AS v (building_name, classroom_name, capacity)
+    JOIN Dengjx_TeachingBuildings13 b ON b.djx_BuildingName13 = v.building_name;
 
 INSERT INTO
     Dengjx_Students13 (
@@ -379,6 +419,7 @@ INSERT INTO
         djx_MajorCourseId13,
         djx_ClassId13,
         djx_TeacherId13,
+        djx_ClassroomId13,
         djx_AcademicYear13,
         djx_Semester13,
         djx_Capacity13,
@@ -394,6 +435,7 @@ SELECT
     mc.djx_MajorCourseId13,
     cl.djx_ClassId13,
     t.djx_TeacherId13,
+    cr.djx_ClassroomId13,
     '2025-2026',
     2,
     v.capacity,
@@ -528,7 +570,63 @@ FROM (
     JOIN Dengjx_Courses13 c ON c.djx_CourseCode13 = v.course_code
     JOIN Dengjx_MajorCourses13 mc ON mc.djx_MajorId13 = m.djx_MajorId13
     AND mc.djx_CourseId13 = c.djx_CourseId13
-    JOIN Dengjx_Teachers13 t ON t.djx_Tno13 = v.teacher_no;
+    JOIN Dengjx_Teachers13 t ON t.djx_Tno13 = v.teacher_no
+    JOIN Dengjx_TeachingBuildings13 b ON b.djx_BuildingName13 = CASE
+        WHEN v.course_code IN ('CS101', 'CS102', 'CS103') THEN '广知楼'
+        WHEN v.course_code IN ('CS104', 'CS105', 'CS106') THEN '健行楼'
+        WHEN v.course_code IN ('CS107', 'CS108', 'CS109') THEN '博易楼'
+        WHEN v.course_code IN ('CS110', 'CS111', 'CS112') THEN '仁和楼'
+        ELSE '法学楼'
+    END
+    JOIN Dengjx_Classrooms13 cr ON cr.djx_BuildingId13 = b.djx_BuildingId13
+    AND cr.djx_ClassroomName13 = CASE
+        WHEN v.course_code = 'CS101' THEN 'A101'
+        WHEN v.course_code = 'CS102' THEN 'C203'
+        WHEN v.course_code = 'CS103' THEN 'A101'
+        WHEN v.course_code = 'CS104' THEN 'B201'
+        WHEN v.course_code = 'CS105' THEN 'B305'
+        WHEN v.course_code = 'CS106' THEN 'B201'
+        WHEN v.course_code = 'CS107' THEN 'C109'
+        WHEN v.course_code = 'CS108' THEN 'B208'
+        WHEN v.course_code = 'CS109' THEN 'C109'
+        WHEN v.course_code = 'CS110' THEN '105'
+        WHEN v.course_code = 'CS111' THEN '203'
+        WHEN v.course_code = 'CS112' THEN '105'
+        WHEN v.course_code = 'CS113' THEN 'B101'
+        WHEN v.course_code = 'CS114' THEN 'B306'
+        WHEN v.course_code = 'CS116' THEN 'B101'
+    END;
+
+INSERT INTO
+    Dengjx_FinalExams13 (
+        djx_CourseId13,
+        djx_AcademicYear13,
+        djx_Semester13,
+        djx_ExamTime13
+    )
+SELECT
+    c.djx_CourseId13,
+    '2025-2026',
+    2,
+    v.exam_time
+FROM (
+        VALUES ('CS101', TIMESTAMP '2026-06-22 09:00:00'),
+            ('CS102', TIMESTAMP '2026-06-23 09:00:00'),
+            ('CS103', TIMESTAMP '2026-06-24 14:00:00'),
+            ('CS104', TIMESTAMP '2026-06-25 09:00:00'),
+            ('CS105', TIMESTAMP '2026-06-25 14:00:00'),
+            ('CS106', TIMESTAMP '2026-06-26 09:00:00'),
+            ('CS107', TIMESTAMP '2026-06-29 09:00:00'),
+            ('CS108', TIMESTAMP '2026-06-29 14:00:00'),
+            ('CS109', TIMESTAMP '2026-06-30 09:00:00'),
+            ('CS110', TIMESTAMP '2026-06-30 14:00:00'),
+            ('CS111', TIMESTAMP '2026-07-01 09:00:00'),
+            ('CS112', TIMESTAMP '2026-07-01 14:00:00'),
+            ('CS113', TIMESTAMP '2026-07-02 09:00:00'),
+            ('CS114', TIMESTAMP '2026-07-02 14:00:00'),
+            ('CS116', TIMESTAMP '2026-07-03 09:00:00')
+    ) AS v (course_code, exam_time)
+    JOIN Dengjx_Courses13 c ON c.djx_CourseCode13 = v.course_code;
 
 INSERT INTO
     Dengjx_Enrollments13 (

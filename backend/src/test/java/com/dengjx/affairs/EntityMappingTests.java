@@ -6,15 +6,19 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.dengjx.affairs.entity.Assignment;
+import com.dengjx.affairs.entity.Classroom;
 import com.dengjx.affairs.entity.Course;
 import com.dengjx.affairs.entity.Enrollment;
+import com.dengjx.affairs.entity.FinalExam;
 import com.dengjx.affairs.entity.Grade;
 import com.dengjx.affairs.entity.Major;
 import com.dengjx.affairs.entity.MajorCourse;
+import com.dengjx.affairs.entity.MajorTransferApplication;
 import com.dengjx.affairs.entity.Region;
 import com.dengjx.affairs.entity.SchoolClass;
 import com.dengjx.affairs.entity.Student;
 import com.dengjx.affairs.entity.Teacher;
+import com.dengjx.affairs.entity.TeachingBuilding;
 import com.dengjx.affairs.entity.TeachingEvaluation;
 import com.dengjx.affairs.entity.UserAccount;
 import java.lang.reflect.Field;
@@ -26,15 +30,19 @@ class EntityMappingTests {
 
     private static final List<Class<?>> ENTITY_CLASSES = List.of(
             Assignment.class,
+            Classroom.class,
             Course.class,
             Enrollment.class,
+            FinalExam.class,
             Grade.class,
             Major.class,
             MajorCourse.class,
+            MajorTransferApplication.class,
             Region.class,
             SchoolClass.class,
             Student.class,
             Teacher.class,
+            TeachingBuilding.class,
             TeachingEvaluation.class,
             UserAccount.class);
 

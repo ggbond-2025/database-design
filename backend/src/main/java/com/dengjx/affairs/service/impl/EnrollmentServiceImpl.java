@@ -35,6 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class EnrollmentServiceImpl implements EnrollmentService {
 
     private static final List<String> ACTIVE_STATUSES = List.of("SELECTED", "COMPLETED");
+    private static final String ENROLLMENT_CLOSED_MESSAGE = "当前不在有效选课时间范围内！";
 
     private final EnrollmentMapper enrollmentMapper;
     private final AssignmentMapper assignmentMapper;
@@ -72,6 +73,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     }
 
     public List<Map<String, Object>> available(Long userId) {
+        ensureGlobalEnrollmentOpen();
         Long studentId = userContextService.getStudentId(userId);
         StudentTermContext context = studentTermContext(studentId);
         autoEnrollRequiredCourses(context);
@@ -84,6 +86,9 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                        c.djx_AssessmentType13,
                        cl.djx_ClassName13,
                        t.djx_Tname13,
+                       tb.djx_BuildingName13,
+                       cr.djx_ClassroomName13,
+                       tb.djx_BuildingName13 || ' ' || cr.djx_ClassroomName13 AS djx_ClassroomLabel13,
                        a.djx_AcademicYear13,
                        a.djx_Semester13,
                        a.djx_WeekdayOne13,
@@ -102,6 +107,8 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                 JOIN Dengjx_Courses13 c ON c.djx_CourseId13 = mc.djx_CourseId13
                 JOIN Dengjx_Classes13 cl ON cl.djx_ClassId13 = a.djx_ClassId13
                 JOIN Dengjx_Teachers13 t ON t.djx_TeacherId13 = a.djx_TeacherId13
+                JOIN Dengjx_Classrooms13 cr ON cr.djx_ClassroomId13 = a.djx_ClassroomId13
+                JOIN Dengjx_TeachingBuildings13 tb ON tb.djx_BuildingId13 = cr.djx_BuildingId13
                 JOIN V_Dengjx_TeacherAssignments13 ta ON ta.djx_AssignmentId13 = a.djx_AssignmentId13
                 WHERE a.djx_EnrollmentOpen13 = TRUE
                   AND mc.djx_CourseType13 = 'ELECTIVE'
@@ -150,6 +157,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
 
     @Transactional
     public Enrollment studentDrop(Long userId, Long assignmentId) {
+        ensureGlobalEnrollmentOpen();
         Long studentId = userContextService.getStudentId(userId);
         Enrollment enrollment = activeEnrollment(studentId, assignmentId);
         if (enrollment == null) {
@@ -180,6 +188,9 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                        c.djx_Credit13,
                        c.djx_Hours13,
                        t.djx_Tname13,
+                       tb.djx_BuildingName13,
+                       cr.djx_ClassroomName13,
+                       tb.djx_BuildingName13 || ' ' || cr.djx_ClassroomName13 AS djx_ClassroomLabel13,
                        a.djx_AcademicYear13,
                        a.djx_Semester13,
                        a.djx_WeekdayOne13,
@@ -196,7 +207,10 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                 JOIN Dengjx_MajorCourses13 mc ON mc.djx_MajorCourseId13 = a.djx_MajorCourseId13
                 JOIN Dengjx_Courses13 c ON c.djx_CourseId13 = mc.djx_CourseId13
                 JOIN Dengjx_Teachers13 t ON t.djx_TeacherId13 = a.djx_TeacherId13
+                JOIN Dengjx_Classrooms13 cr ON cr.djx_ClassroomId13 = a.djx_ClassroomId13
+                JOIN Dengjx_TeachingBuildings13 tb ON tb.djx_BuildingId13 = cr.djx_BuildingId13
                 WHERE e.djx_StudentId13 = ?
+                  AND e.djx_Status13 IN ('SELECTED', 'COMPLETED')
                   AND a.djx_AcademicYear13 = ?
                   AND a.djx_Semester13 = ?
                   AND mc.djx_TargetGrade13 = ?
@@ -316,7 +330,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
 
     private void ensureGlobalEnrollmentOpen() {
         if (enrollmentSettingService != null && !enrollmentSettingService.isEnabled()) {
-            throw new BusinessException("当前未开放选课");
+            throw new BusinessException(ENROLLMENT_CLOSED_MESSAGE);
         }
     }
 

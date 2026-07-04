@@ -94,6 +94,7 @@ class AcademicValidationTests {
                 1L,
                 1L,
                 1L,
+                1L,
                 "2023-2024",
                 3,
                 30,
@@ -117,6 +118,7 @@ class AcademicValidationTests {
                 1L,
                 1L,
                 1L,
+                1L,
                 "2023-2024",
                 1,
                 30,
@@ -137,6 +139,7 @@ class AcademicValidationTests {
     void fortyEightHourAssignmentRequiresSecondSlot() {
         AssignmentService service = new AssignmentServiceImpl(mock(AssignmentMapper.class), new FixedHoursJdbcTemplate(48));
         AssignmentRequest request = new AssignmentRequest(
+                1L,
                 1L,
                 1L,
                 1L,

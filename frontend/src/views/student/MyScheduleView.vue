@@ -75,6 +75,7 @@ onMounted(load)
             >
               <strong>{{ item.djx_coursename13 }}</strong>
               <small>{{ item.djx_tname13 }} / {{ formatCourseType(item.djx_coursetype13) }}</small>
+              <small>{{ item.djx_classroomlabel13 }}</small>
             </div>
           </div>
           <span v-else class="empty-cell">无课程</span>

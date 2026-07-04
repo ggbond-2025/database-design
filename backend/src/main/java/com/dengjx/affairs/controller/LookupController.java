@@ -31,6 +31,11 @@ public class LookupController {
         return ApiResponse.ok(lookupService.majorOptions());
     }
 
+    @GetMapping("/api/student/lookups/majors")
+    public ApiResponse<List<LookupOption>> studentMajors() {
+        return ApiResponse.ok(lookupService.majorOptions());
+    }
+
     @GetMapping("/api/admin/lookups/teachers")
     public ApiResponse<List<LookupOption>> teachers() {
         return ApiResponse.ok(lookupService.teacherOptions());
@@ -49,6 +54,16 @@ public class LookupController {
     @GetMapping("/api/admin/lookups/classes")
     public ApiResponse<List<LookupOption>> classes() {
         return ApiResponse.ok(lookupService.classOptions());
+    }
+
+    @GetMapping("/api/admin/lookups/teaching-buildings")
+    public ApiResponse<List<LookupOption>> teachingBuildings() {
+        return ApiResponse.ok(lookupService.teachingBuildingOptions());
+    }
+
+    @GetMapping("/api/admin/lookups/classrooms")
+    public ApiResponse<List<LookupOption>> classrooms() {
+        return ApiResponse.ok(lookupService.classroomOptions());
     }
 
     @GetMapping("/api/admin/lookups/assignments")

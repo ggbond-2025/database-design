@@ -85,6 +85,9 @@ SELECT
     c.djx_CourseName13,
     cl.djx_ClassId13,
     cl.djx_ClassName13,
+    cr.djx_ClassroomId13,
+    tb.djx_BuildingName13,
+    cr.djx_ClassroomName13,
     a.djx_AcademicYear13,
     a.djx_Semester13,
     mc.djx_CourseType13,
@@ -109,6 +112,8 @@ FROM
     JOIN Dengjx_MajorCourses13 mc ON mc.djx_MajorCourseId13 = a.djx_MajorCourseId13
     JOIN Dengjx_Courses13 c ON c.djx_CourseId13 = mc.djx_CourseId13
     JOIN Dengjx_Classes13 cl ON cl.djx_ClassId13 = a.djx_ClassId13
+    JOIN Dengjx_Classrooms13 cr ON cr.djx_ClassroomId13 = a.djx_ClassroomId13
+    JOIN Dengjx_TeachingBuildings13 tb ON tb.djx_BuildingId13 = cr.djx_BuildingId13
     LEFT JOIN Dengjx_Enrollments13 e ON e.djx_AssignmentId13 = a.djx_AssignmentId13
 GROUP BY
     t.djx_TeacherId13,
@@ -120,6 +125,9 @@ GROUP BY
     c.djx_CourseName13,
     cl.djx_ClassId13,
     cl.djx_ClassName13,
+    cr.djx_ClassroomId13,
+    tb.djx_BuildingName13,
+    cr.djx_ClassroomName13,
     a.djx_AcademicYear13,
     a.djx_Semester13,
     mc.djx_CourseType13,
@@ -147,6 +155,9 @@ SELECT
     t.djx_Tno13,
     t.djx_Tname13,
     a.djx_AssignmentId13,
+    cr.djx_ClassroomId13,
+    tb.djx_BuildingName13,
+    cr.djx_ClassroomName13,
     a.djx_AcademicYear13,
     a.djx_Semester13,
     a.djx_WeekdayOne13,
@@ -164,7 +175,9 @@ FROM
     JOIN Dengjx_Majors13 m ON m.djx_MajorId13 = cl.djx_MajorId13
     JOIN Dengjx_MajorCourses13 mc ON mc.djx_MajorCourseId13 = a.djx_MajorCourseId13
     JOIN Dengjx_Courses13 c ON c.djx_CourseId13 = mc.djx_CourseId13
-    JOIN Dengjx_Teachers13 t ON t.djx_TeacherId13 = a.djx_TeacherId13;
+    JOIN Dengjx_Teachers13 t ON t.djx_TeacherId13 = a.djx_TeacherId13
+    JOIN Dengjx_Classrooms13 cr ON cr.djx_ClassroomId13 = a.djx_ClassroomId13
+    JOIN Dengjx_TeachingBuildings13 tb ON tb.djx_BuildingId13 = cr.djx_BuildingId13;
 
 CREATE OR REPLACE VIEW V_Dengjx_CourseAverage13 AS
 SELECT
@@ -174,6 +187,9 @@ SELECT
     c.djx_CourseName13,
     cl.djx_ClassName13,
     t.djx_Tname13,
+    cr.djx_ClassroomId13,
+    tb.djx_BuildingName13,
+    cr.djx_ClassroomName13,
     a.djx_AcademicYear13,
     a.djx_Semester13,
     ROUND(AVG(g.djx_Score13), 2) AS djx_AverageScore13,
@@ -192,6 +208,8 @@ FROM
     JOIN Dengjx_Courses13 c ON c.djx_CourseId13 = mc.djx_CourseId13
     JOIN Dengjx_Classes13 cl ON cl.djx_ClassId13 = a.djx_ClassId13
     JOIN Dengjx_Teachers13 t ON t.djx_TeacherId13 = a.djx_TeacherId13
+    JOIN Dengjx_Classrooms13 cr ON cr.djx_ClassroomId13 = a.djx_ClassroomId13
+    JOIN Dengjx_TeachingBuildings13 tb ON tb.djx_BuildingId13 = cr.djx_BuildingId13
     LEFT JOIN Dengjx_Enrollments13 e ON e.djx_AssignmentId13 = a.djx_AssignmentId13
     AND e.djx_Status13 <> 'DROPPED'
     LEFT JOIN Dengjx_Grades13 g ON g.djx_EnrollmentId13 = e.djx_EnrollmentId13
@@ -202,6 +220,9 @@ GROUP BY
     c.djx_CourseName13,
     cl.djx_ClassName13,
     t.djx_Tname13,
+    cr.djx_ClassroomId13,
+    tb.djx_BuildingName13,
+    cr.djx_ClassroomName13,
     a.djx_AcademicYear13,
     a.djx_Semester13;
 

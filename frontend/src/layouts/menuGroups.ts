@@ -42,6 +42,8 @@ const adminMenuGroups: MenuGroup[] = [
     items: [
       { index: '/admin/majors', label: '专业管理', icon: School },
       { index: '/admin/classes', label: '班级管理', icon: Files },
+      { index: '/admin/teaching-buildings', label: '教学楼管理', icon: OfficeBuilding },
+      { index: '/admin/classrooms', label: '教室管理', icon: OfficeBuilding },
       { index: '/admin/students', label: '学生管理', icon: UserFilled },
       { index: '/admin/teachers', label: '教师管理', icon: User },
       { index: '/admin/courses', label: '课程管理', icon: Notebook },
@@ -54,6 +56,8 @@ const adminMenuGroups: MenuGroup[] = [
     icon: Tickets,
     items: [
       { index: '/admin/assignments', label: '开课安排', icon: Tickets },
+      { index: '/admin/final-exams', label: '期末考试', icon: Calendar },
+      { index: '/admin/major-transfer-applications', label: '转专业审核', icon: School },
       { index: '/admin/enrollments', label: '选课记录', icon: Reading },
       { index: '/admin/grades', label: '成绩管理', icon: DataAnalysis },
       { index: '/admin/evaluations', label: '教学评价', icon: DataAnalysis }
@@ -85,7 +89,8 @@ const teacherMenuGroups: MenuGroup[] = [
       { index: '/teacher/assignments', label: '我的任课', icon: Notebook },
       { index: '/teacher/enrollments', label: '选课名单', icon: UserFilled },
       { index: '/teacher/grades', label: '成绩录入', icon: DataAnalysis },
-      { index: '/teacher/evaluations', label: '教学评价', icon: DataAnalysis }
+      { index: '/teacher/evaluations', label: '教学评价', icon: DataAnalysis },
+      { index: '/teacher/final-exams', label: '期末考试', icon: Calendar }
     ]
   },
   {
@@ -115,7 +120,8 @@ const studentMenuGroups: MenuGroup[] = [
       { index: '/student/enrollments', label: '我的选课', icon: Reading },
       { index: '/student/courses', label: '我的课程', icon: Notebook },
       { index: '/student/schedule', label: '我的课表', icon: Calendar },
-      { index: '/student/evaluations', label: '教学评价', icon: DataAnalysis }
+      { index: '/student/evaluations', label: '教学评价', icon: DataAnalysis },
+      { index: '/student/final-exams', label: '期末考试', icon: Calendar }
     ]
   },
   {
@@ -134,7 +140,8 @@ const studentMenuGroups: MenuGroup[] = [
     icon: OfficeBuilding,
     items: [
       { index: '/student/classmates', label: '我的班级', icon: OfficeBuilding },
-      { index: '/student/profile', label: '本人信息', icon: User }
+      { index: '/student/profile', label: '本人信息', icon: User },
+      { index: '/student/major-transfer-applications', label: '转专业申请', icon: School }
     ]
   }
 ]

@@ -3,11 +3,14 @@ import { createRouter, createWebHistory } from 'vue-router'
 import MainLayout from '@/layouts/MainLayout.vue'
 import { roleDashboard, useAuthStore, type Role } from '@/stores/auth'
 import AssignmentManagementView from '@/views/admin/AssignmentManagementView.vue'
+import ClassroomManagementView from '@/views/admin/ClassroomManagementView.vue'
 import ClassManagementView from '@/views/admin/ClassManagementView.vue'
 import CourseManagementView from '@/views/admin/CourseManagementView.vue'
 import AdminDashboardView from '@/views/admin/AdminDashboardView.vue'
 import EnrollmentManagementView from '@/views/admin/EnrollmentManagementView.vue'
+import FinalExamManagementView from '@/views/admin/FinalExamManagementView.vue'
 import GradeManagementView from '@/views/admin/GradeManagementView.vue'
+import MajorTransferApplicationManagementView from '@/views/admin/MajorTransferApplicationManagementView.vue'
 import MajorManagementView from '@/views/admin/MajorManagementView.vue'
 import MajorCourseManagementView from '@/views/admin/MajorCourseManagementView.vue'
 import RegionManagementView from '@/views/admin/RegionManagementView.vue'
@@ -15,6 +18,7 @@ import StatisticsView from '@/views/admin/StatisticsView.vue'
 import StudentManagementView from '@/views/admin/StudentManagementView.vue'
 import TeachingEvaluationManagementView from '@/views/admin/TeachingEvaluationManagementView.vue'
 import TeacherManagementView from '@/views/admin/TeacherManagementView.vue'
+import TeachingBuildingManagementView from '@/views/admin/TeachingBuildingManagementView.vue'
 import UserManagementView from '@/views/admin/UserManagementView.vue'
 import LoginView from '@/views/login/LoginView.vue'
 import AvailableCoursesView from '@/views/student/AvailableCoursesView.vue'
@@ -25,12 +29,15 @@ import MyGradesView from '@/views/student/MyGradesView.vue'
 import MyClassmatesView from '@/views/student/MyClassmatesView.vue'
 import MyRankView from '@/views/student/MyRankView.vue'
 import MyScheduleView from '@/views/student/MyScheduleView.vue'
+import MajorTransferApplicationsView from '@/views/student/MajorTransferApplicationsView.vue'
+import StudentFinalExamsView from '@/views/student/StudentFinalExamsView.vue'
 import StudentProfileView from '@/views/student/StudentProfileView.vue'
 import StudentDashboardView from '@/views/student/StudentDashboardView.vue'
 import TeachingEvaluationsView from '@/views/student/TeachingEvaluationsView.vue'
 import TeacherAssignmentsView from '@/views/teacher/TeacherAssignmentsView.vue'
 import TeacherDashboardView from '@/views/teacher/TeacherDashboardView.vue'
 import TeacherEvaluationsView from '@/views/teacher/TeacherEvaluationsView.vue'
+import TeacherFinalExamsView from '@/views/teacher/TeacherFinalExamsView.vue'
 import TeacherEnrollmentListView from '@/views/teacher/TeacherEnrollmentListView.vue'
 import TeacherGradeEntryView from '@/views/teacher/TeacherGradeEntryView.vue'
 import TeacherProfileView from '@/views/teacher/TeacherProfileView.vue'
@@ -75,6 +82,16 @@ const router = createRouter({
           meta: { role: 'ADMIN' }
         },
         {
+          path: 'admin/teaching-buildings',
+          component: TeachingBuildingManagementView,
+          meta: { role: 'ADMIN' }
+        },
+        {
+          path: 'admin/classrooms',
+          component: ClassroomManagementView,
+          meta: { role: 'ADMIN' }
+        },
+        {
           path: 'admin/students',
           component: StudentManagementView,
           meta: { role: 'ADMIN' }
@@ -97,6 +114,16 @@ const router = createRouter({
         {
           path: 'admin/assignments',
           component: AssignmentManagementView,
+          meta: { role: 'ADMIN' }
+        },
+        {
+          path: 'admin/final-exams',
+          component: FinalExamManagementView,
+          meta: { role: 'ADMIN' }
+        },
+        {
+          path: 'admin/major-transfer-applications',
+          component: MajorTransferApplicationManagementView,
           meta: { role: 'ADMIN' }
         },
         {
@@ -151,6 +178,11 @@ const router = createRouter({
           meta: { role: 'TEACHER' }
         },
         {
+          path: 'teacher/final-exams',
+          component: TeacherFinalExamsView,
+          meta: { role: 'TEACHER' }
+        },
+        {
           path: 'teacher/statistics',
           component: TeacherStatisticsView,
           meta: { role: 'TEACHER' }
@@ -192,6 +224,11 @@ const router = createRouter({
           meta: { role: 'STUDENT' }
         },
         {
+          path: 'student/final-exams',
+          component: StudentFinalExamsView,
+          meta: { role: 'STUDENT' }
+        },
+        {
           path: 'student/grades',
           component: MyGradesView,
           meta: { role: 'STUDENT' }
@@ -214,6 +251,11 @@ const router = createRouter({
         {
           path: 'student/profile',
           component: StudentProfileView,
+          meta: { role: 'STUDENT' }
+        },
+        {
+          path: 'student/major-transfer-applications',
+          component: MajorTransferApplicationsView,
           meta: { role: 'STUDENT' }
         }
       ]

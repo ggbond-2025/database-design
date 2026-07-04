@@ -1,4 +1,4 @@
-import type { CrudPageConfig, FieldVisibilityContext } from '@/components/crudTypes'
+import type { CrudPageConfig, FieldOption, FieldVisibilityContext } from '@/components/crudTypes'
 import { classPeriodOptions, classPeriodRelatedFields } from '@/utils/classPeriods'
 
 export const genderOptions = [
@@ -38,6 +38,11 @@ function selectedMajorCourseHours(context: FieldVisibilityContext) {
 
 function needsSecondScheduleSlot(context: FieldVisibilityContext) {
   return selectedMajorCourseHours(context) >= 48
+}
+
+function classroomMatchesSelectedBuilding(option: FieldOption, context: FieldVisibilityContext) {
+  const buildingId = context.form.buildingId
+  return !buildingId || Number(option.meta?.buildingId) === Number(buildingId)
 }
 
 export const regionConfig: CrudPageConfig = {
@@ -90,6 +95,30 @@ export const studentConfig: CrudPageConfig = {
     { prop: 'classId', label: '所属班级', type: 'select', required: true, lookup: 'classes' },
     { prop: 'regionId', label: '生源地区', type: 'select', required: true, lookup: 'regions' },
     { prop: 'admissionDate', label: '入学时间', type: 'date', required: true }
+  ]
+}
+
+export const teachingBuildingConfig: CrudPageConfig = {
+  title: '教学楼管理',
+  description: '维护可用于排课和考试地点显示的教学楼。',
+  resource: 'teaching-buildings',
+  rowKey: 'buildingId',
+  fields: [
+    { prop: 'buildingId', label: '教学楼编号', form: false },
+    { prop: 'buildingName', label: '教学楼名称', required: true }
+  ]
+}
+
+export const classroomConfig: CrudPageConfig = {
+  title: '教室管理',
+  description: '维护教学楼下的具体教室和容量。',
+  resource: 'classrooms',
+  rowKey: 'classroomId',
+  fields: [
+    { prop: 'classroomId', label: '教室编号', form: false },
+    { prop: 'buildingId', label: '教学楼', type: 'select', required: true, lookup: 'teaching-buildings' },
+    { prop: 'classroomName', label: '教室', required: true },
+    { prop: 'capacity', label: '容量', type: 'number', required: true }
   ]
 }
 
@@ -157,6 +186,25 @@ export const assignmentConfig: CrudPageConfig = {
     { prop: 'majorCourseId', label: '专业课程计划', type: 'select', required: true, lookup: 'major-courses' },
     { prop: 'classId', label: '班级', type: 'select', required: true, lookup: 'classes' },
     { prop: 'teacherId', label: '教师', type: 'select', required: true, lookup: 'teachers' },
+    {
+      prop: 'buildingId',
+      label: '教学楼',
+      type: 'select',
+      lookup: 'teaching-buildings',
+      form: true,
+      table: false,
+      payload: false,
+      group: '上课地点'
+    },
+    {
+      prop: 'classroomId',
+      label: '教室',
+      type: 'select',
+      required: true,
+      lookup: 'classrooms',
+      optionFilter: classroomMatchesSelectedBuilding,
+      group: '上课地点'
+    },
     { prop: 'academicYear', label: '学年', required: true },
     {
       prop: 'semester',
@@ -203,6 +251,29 @@ export const assignmentConfig: CrudPageConfig = {
       hiddenPayload: { weekdayTwo: null, startTimeTwo: null, endTimeTwo: null }
     },
     { prop: 'endTimeTwo', label: '结束时间2', form: false, table: false }
+  ]
+}
+
+export const finalExamConfig: CrudPageConfig = {
+  title: '期末考试管理',
+  description: '按课程、学年和学期统一设置期末考试时间；考试地点默认使用对应开课安排的上课教室。',
+  resource: 'final-exams',
+  rowKey: 'examId',
+  fields: [
+    { prop: 'examId', label: '考试编号', form: false },
+    { prop: 'courseId', label: '课程', type: 'select', required: true, lookup: 'courses' },
+    { prop: 'academicYear', label: '学年', required: true },
+    {
+      prop: 'semester',
+      label: '学期',
+      type: 'select',
+      required: true,
+      options: [
+        { label: '第1学期', value: 1 },
+        { label: '第2学期', value: 2 }
+      ]
+    },
+    { prop: 'examTime', label: '考试时间', type: 'datetime', required: true }
   ]
 }
 

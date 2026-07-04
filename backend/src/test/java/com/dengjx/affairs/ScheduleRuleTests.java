@@ -21,6 +21,7 @@ class ScheduleRuleTests {
         assertColumn("weekdayTwo", "djx_weekdaytwo13");
         assertColumn("startTimeTwo", "djx_starttimetwo13");
         assertColumn("endTimeTwo", "djx_endtimetwo13");
+        assertColumn("classroomId", "djx_classroomid13");
     }
 
     @Test

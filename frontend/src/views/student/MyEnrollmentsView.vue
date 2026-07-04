@@ -57,6 +57,7 @@ function openRank(row: Row) {
       <el-table-column label="上课时间" min-width="220">
         <template #default="{ row }">{{ formatScheduleSlots(row) }}</template>
       </el-table-column>
+      <el-table-column prop="djx_classroomlabel13" label="上课地点" />
       <el-table-column label="状态">
         <template #default="{ row }">
           <el-tag :type="row.djx_status13 === 'DROPPED' ? 'info' : 'success'">

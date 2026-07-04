@@ -13,7 +13,7 @@ export interface FieldVisibilityContext {
 export interface FieldConfig {
   prop: string
   label: string
-  type?: 'text' | 'number' | 'boolean' | 'select' | 'date' | 'time'
+  type?: 'text' | 'number' | 'boolean' | 'select' | 'date' | 'time' | 'datetime'
   required?: boolean
   table?: boolean
   form?: boolean
@@ -22,7 +22,9 @@ export interface FieldConfig {
   relatedFields?: Record<string, Record<string, string | number | boolean | null>>
   group?: string
   visibleWhen?: (context: FieldVisibilityContext) => boolean
+  optionFilter?: (option: FieldOption, context: FieldVisibilityContext) => boolean
   hiddenPayload?: Record<string, string | number | boolean | null>
+  payload?: boolean
 }
 
 export interface CrudPageConfig {

@@ -18,6 +18,7 @@ onMounted(async () => {
       <el-table-column prop="djx_coursename13" label="课程" />
       <el-table-column prop="djx_credit13" label="学分" />
       <el-table-column prop="djx_tname13" label="教师" />
+      <el-table-column prop="djx_classroomlabel13" label="上课地点" />
       <el-table-column label="上课时间" min-width="220">
         <template #default="{ row }">{{ formatScheduleSlots(row) }}</template>
       </el-table-column>

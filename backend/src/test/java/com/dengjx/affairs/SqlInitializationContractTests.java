@@ -116,6 +116,32 @@ class SqlInitializationContractTests {
     }
 
     @Test
+    void schemaDefinesClassroomsMajorTransfersAndFinalExams() throws IOException {
+        String schema = readSql("02_schema.sql");
+
+        assertThat(schema)
+                .contains("CREATE TABLE Dengjx_TeachingBuildings13")
+                .contains("CREATE TABLE Dengjx_Classrooms13")
+                .contains("djx_ClassroomId13 BIGINT NOT NULL REFERENCES Dengjx_Classrooms13")
+                .contains("CREATE TABLE Dengjx_MajorTransferApplications13")
+                .contains("djx_Status13 VARCHAR(20) NOT NULL DEFAULT 'PENDING'")
+                .contains("CREATE TABLE Dengjx_FinalExams13")
+                .contains("UNIQUE (djx_CourseId13, djx_AcademicYear13, djx_Semester13)");
+    }
+
+    @Test
+    void seedDataIncludesZjutTeachingBuildingsAndClassrooms() throws IOException {
+        String seed = readSql("06_seed_data.sql");
+
+        assertThat(seed)
+                .contains("Dengjx_TeachingBuildings13")
+                .contains("'健行楼'")
+                .contains("'广知楼'")
+                .contains("'博易楼'")
+                .contains("Dengjx_Classrooms13");
+    }
+
+    @Test
     void seedDataIncludesSampleTeachingEvaluationsForCompletedCourses() throws IOException {
         String seed = readSql("06_seed_data.sql");
 

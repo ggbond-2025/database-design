@@ -20,7 +20,11 @@ DROP TABLE IF EXISTS Dengjx_Grades13;
 
 DROP TABLE IF EXISTS Dengjx_Enrollments13;
 
+DROP TABLE IF EXISTS Dengjx_MajorTransferApplications13;
+
 DROP TABLE IF EXISTS Dengjx_TeachingAssignments13;
+
+DROP TABLE IF EXISTS Dengjx_FinalExams13;
 
 DROP TABLE IF EXISTS Dengjx_EnrollmentSettings13;
 
@@ -33,6 +37,10 @@ DROP TABLE IF EXISTS Dengjx_Teachers13;
 DROP TABLE IF EXISTS Dengjx_Students13;
 
 DROP TABLE IF EXISTS Dengjx_Classes13;
+
+DROP TABLE IF EXISTS Dengjx_Classrooms13;
+
+DROP TABLE IF EXISTS Dengjx_TeachingBuildings13;
 
 DROP TABLE IF EXISTS Dengjx_Majors13;
 
@@ -66,6 +74,27 @@ CREATE TABLE Dengjx_Classes13 (
     djx_MajorId13 BIGINT NOT NULL REFERENCES Dengjx_Majors13 (djx_MajorId13),
     -- 入学年级。
     djx_GradeYear13 INTEGER NOT NULL
+);
+
+-- 教学楼表，保存校内可排课教学楼。
+CREATE TABLE Dengjx_TeachingBuildings13 (
+    -- 教学楼主键编号。
+    djx_BuildingId13 BIGSERIAL PRIMARY KEY,
+    -- 教学楼名称。
+    djx_BuildingName13 VARCHAR(100) NOT NULL UNIQUE
+);
+
+-- 教室表，保存教学楼下的具体教室。
+CREATE TABLE Dengjx_Classrooms13 (
+    -- 教室主键编号。
+    djx_ClassroomId13 BIGSERIAL PRIMARY KEY,
+    -- 所属教学楼编号。
+    djx_BuildingId13 BIGINT NOT NULL REFERENCES Dengjx_TeachingBuildings13 (djx_BuildingId13),
+    -- 教室名称。
+    djx_ClassroomName13 VARCHAR(100) NOT NULL,
+    -- 教室容量。
+    djx_Capacity13 INTEGER NOT NULL CHECK (djx_Capacity13 > 0),
+    UNIQUE (djx_BuildingId13, djx_ClassroomName13)
 );
 
 -- 学生信息表，保存学生基本信息、班级和生源地区。
@@ -130,6 +159,21 @@ CREATE TABLE Dengjx_Courses13 (
     djx_Credit13 NUMERIC(4, 1) NOT NULL CHECK (djx_Credit13 > 0)
 );
 
+-- 期末考试表，按课程、学年和学期统一维护考试时间。
+CREATE TABLE Dengjx_FinalExams13 (
+    -- 期末考试主键编号。
+    djx_ExamId13 BIGSERIAL PRIMARY KEY,
+    -- 课程编号。
+    djx_CourseId13 BIGINT NOT NULL REFERENCES Dengjx_Courses13 (djx_CourseId13),
+    -- 学年。
+    djx_AcademicYear13 VARCHAR(20) NOT NULL,
+    -- 学期，取值为1或2。
+    djx_Semester13 INTEGER NOT NULL CHECK (djx_Semester13 IN (1, 2)),
+    -- 考试开始时间。
+    djx_ExamTime13 TIMESTAMP NOT NULL,
+    UNIQUE (djx_CourseId13, djx_AcademicYear13, djx_Semester13)
+);
+
 -- 专业课程计划表，保存专业与课程的培养方案关系。
 CREATE TABLE Dengjx_MajorCourses13 (
     -- 专业课程计划主键编号。
@@ -173,6 +217,8 @@ CREATE TABLE Dengjx_TeachingAssignments13 (
     djx_ClassId13 BIGINT NOT NULL REFERENCES Dengjx_Classes13 (djx_ClassId13),
     -- 授课教师编号。
     djx_TeacherId13 BIGINT NOT NULL REFERENCES Dengjx_Teachers13 (djx_TeacherId13),
+    -- 上课教室编号。
+    djx_ClassroomId13 BIGINT NOT NULL REFERENCES Dengjx_Classrooms13 (djx_ClassroomId13),
     -- 学年。
     djx_AcademicYear13 VARCHAR(20) NOT NULL,
     -- 学期，取值为1或2。
@@ -219,6 +265,32 @@ CREATE TABLE Dengjx_TeachingAssignments13 (
             AND djx_StartTimeTwo13 < djx_EndTimeTwo13
         )
     )
+);
+
+-- 转专业申请表，保存学生提交和管理员审核结果。
+CREATE TABLE Dengjx_MajorTransferApplications13 (
+    -- 转专业申请主键编号。
+    djx_ApplicationId13 BIGSERIAL PRIMARY KEY,
+    -- 申请学生编号。
+    djx_StudentId13 BIGINT NOT NULL REFERENCES Dengjx_Students13 (djx_StudentId13),
+    -- 原专业编号。
+    djx_FromMajorId13 BIGINT NOT NULL REFERENCES Dengjx_Majors13 (djx_MajorId13),
+    -- 目标专业编号。
+    djx_TargetMajorId13 BIGINT NOT NULL REFERENCES Dengjx_Majors13 (djx_MajorId13),
+    -- 审核通过后转入的班级，未通过或待审核时为空。
+    djx_TargetClassId13 BIGINT NULL REFERENCES Dengjx_Classes13 (djx_ClassId13),
+    -- 申请理由。
+    djx_Reason13 VARCHAR(500) NULL,
+    -- 审核状态，PENDING待审核，APPROVED通过，REJECTED驳回。
+    djx_Status13 VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (
+        djx_Status13 IN ('PENDING', 'APPROVED', 'REJECTED')
+    ),
+    -- 审核意见。
+    djx_ReviewComment13 VARCHAR(500) NULL,
+    -- 申请提交时间。
+    djx_AppliedAt13 TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- 审核时间。
+    djx_ReviewedAt13 TIMESTAMP NULL
 );
 
 -- 选课记录表，保存学生选择教学任务的状态和时间。
@@ -324,7 +396,13 @@ CREATE INDEX idx_djx_assignments_teacher13 ON Dengjx_TeachingAssignments13 (djx_
 
 CREATE INDEX idx_djx_assignments_class13 ON Dengjx_TeachingAssignments13 (djx_ClassId13);
 
+CREATE INDEX idx_djx_assignments_classroom13 ON Dengjx_TeachingAssignments13 (djx_ClassroomId13);
+
 CREATE INDEX idx_djx_enrollments_student13 ON Dengjx_Enrollments13 (djx_StudentId13);
+
+CREATE INDEX idx_djx_majortransfer_student13 ON Dengjx_MajorTransferApplications13 (djx_StudentId13);
+
+CREATE INDEX idx_djx_finalexams_course13 ON Dengjx_FinalExams13 (djx_CourseId13);
 
 CREATE INDEX idx_djx_evaluations_rating13 ON Dengjx_TeachingEvaluations13 (djx_Rating13);
 
