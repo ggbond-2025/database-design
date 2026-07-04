@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
 
 import { studentGet, studentPost } from '@/api/modules/student'
 import PageContainer from '@/components/PageContainer.vue'
@@ -8,11 +9,30 @@ import { formatAssessmentType, formatCourseType, formatSemester, type Row } from
 
 const loading = ref(false)
 const rows = ref<Row[]>([])
+const router = useRouter()
+const filters = reactive({
+  keyword: '',
+  academicYear: '',
+  semester: undefined as number | undefined
+})
+const filteredRows = computed(() => {
+  return rows.value.filter((row) => {
+    const keyword = filters.keyword.trim()
+    const matchesKeyword =
+      !keyword ||
+      String(row.djx_coursecode13 ?? '').includes(keyword) ||
+      String(row.djx_coursename13 ?? '').includes(keyword) ||
+      String(row.djx_tname13 ?? '').includes(keyword)
+    const matchesYear = !filters.academicYear || row.djx_academicyear13 === filters.academicYear
+    const matchesSemester = !filters.semester || Number(row.djx_semester13) === filters.semester
+    return matchesKeyword && matchesYear && matchesSemester
+  })
+})
 
 async function load() {
   loading.value = true
   try {
-    rows.value = await studentGet('/enrollments/available')
+    rows.value = await studentGet<Row[]>('/enrollments/available')
   } finally {
     loading.value = false
   }
@@ -21,7 +41,7 @@ async function load() {
 async function enroll(row: Row) {
   await studentPost(`/enrollments/${row.djx_assignmentid13}`)
   ElMessage.success('选课成功')
-  await load()
+  await router.push('/student/enrollments')
 }
 
 function remaining(row: Row) {
@@ -32,9 +52,17 @@ onMounted(load)
 </script>
 
 <template>
-  <PageContainer title="可选课程" description="查看已开放选课的课程并完成选课。">
-    <el-table v-loading="loading" :data="rows" border class="data-table">
-      <el-table-column prop="djx_assignmentid13" label="开课ID" />
+  <PageContainer title="可选课程" description="仅展示当前年级学期开放的专业选修课。">
+    <div class="inline-form">
+      <el-input v-model="filters.keyword" class="toolbar-search" clearable placeholder="课程、编号或教师" />
+      <el-input v-model="filters.academicYear" class="toolbar-search" clearable placeholder="学年，例如 2023-2024" />
+      <el-select v-model="filters.semester" class="query-select" clearable placeholder="学期">
+        <el-option label="第1学期" :value="1" />
+        <el-option label="第2学期" :value="2" />
+      </el-select>
+      <el-button @click="load">刷新</el-button>
+    </div>
+    <el-table v-loading="loading" :data="filteredRows" border class="data-table">
       <el-table-column prop="djx_coursecode13" label="课程编号" />
       <el-table-column prop="djx_coursename13" label="课程" />
       <el-table-column prop="djx_tname13" label="教师" />

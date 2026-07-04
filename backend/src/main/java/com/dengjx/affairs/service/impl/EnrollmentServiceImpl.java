@@ -18,9 +18,14 @@ import com.dengjx.affairs.entity.Grade;
 import com.dengjx.affairs.mapper.GradeMapper;
 import com.dengjx.affairs.security.AuthenticatedUser;
 import com.dengjx.affairs.security.UserContextService;
+import com.dengjx.affairs.service.EnrollmentSettingService;
+import java.sql.Date;
+import java.time.LocalDate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class EnrollmentServiceImpl implements EnrollmentService {
@@ -32,6 +37,26 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     private final GradeMapper gradeMapper;
     private final UserContextService userContextService;
     private final JdbcTemplate jdbcTemplate;
+    private final AcademicTermService academicTermService;
+    private final EnrollmentSettingService enrollmentSettingService;
+
+    @Autowired
+    public EnrollmentServiceImpl(
+            EnrollmentMapper enrollmentMapper,
+            AssignmentMapper assignmentMapper,
+            GradeMapper gradeMapper,
+            UserContextService userContextService,
+            JdbcTemplate jdbcTemplate,
+            AcademicTermService academicTermService,
+            EnrollmentSettingService enrollmentSettingService) {
+        this.enrollmentMapper = enrollmentMapper;
+        this.assignmentMapper = assignmentMapper;
+        this.gradeMapper = gradeMapper;
+        this.userContextService = userContextService;
+        this.jdbcTemplate = jdbcTemplate;
+        this.academicTermService = academicTermService;
+        this.enrollmentSettingService = enrollmentSettingService;
+    }
 
     public EnrollmentServiceImpl(
             EnrollmentMapper enrollmentMapper,
@@ -39,15 +64,13 @@ public class EnrollmentServiceImpl implements EnrollmentService {
             GradeMapper gradeMapper,
             UserContextService userContextService,
             JdbcTemplate jdbcTemplate) {
-        this.enrollmentMapper = enrollmentMapper;
-        this.assignmentMapper = assignmentMapper;
-        this.gradeMapper = gradeMapper;
-        this.userContextService = userContextService;
-        this.jdbcTemplate = jdbcTemplate;
+        this(enrollmentMapper, assignmentMapper, gradeMapper, userContextService, jdbcTemplate, new AcademicTermService(), null);
     }
 
     public List<Map<String, Object>> available(Long userId) {
         Long studentId = userContextService.getStudentId(userId);
+        StudentTermContext context = studentTermContext(studentId);
+        autoEnrollRequiredCourses(context);
         String sql = """
                 SELECT a.djx_AssignmentId13,
                        c.djx_CourseCode13,
@@ -59,15 +82,22 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                        t.djx_Tname13,
                        a.djx_AcademicYear13,
                        a.djx_Semester13,
-                       a.djx_CourseType13,
+                       mc.djx_CourseType13,
+                       mc.djx_TargetGrade13,
+                       mc.djx_TargetSemester13,
                        a.djx_Capacity13,
                        ta.djx_SelectedCount13
                 FROM Dengjx_TeachingAssignments13 a
-                JOIN Dengjx_Courses13 c ON c.djx_CourseId13 = a.djx_CourseId13
+                JOIN Dengjx_MajorCourses13 mc ON mc.djx_MajorCourseId13 = a.djx_MajorCourseId13
+                JOIN Dengjx_Courses13 c ON c.djx_CourseId13 = mc.djx_CourseId13
                 JOIN Dengjx_Classes13 cl ON cl.djx_ClassId13 = a.djx_ClassId13
                 JOIN Dengjx_Teachers13 t ON t.djx_TeacherId13 = a.djx_TeacherId13
                 JOIN V_Dengjx_TeacherAssignments13 ta ON ta.djx_AssignmentId13 = a.djx_AssignmentId13
                 WHERE a.djx_EnrollmentOpen13 = TRUE
+                  AND mc.djx_CourseType13 = 'ELECTIVE'
+                  AND a.djx_ClassId13 = ?
+                  AND mc.djx_TargetGrade13 = ?
+                  AND mc.djx_TargetSemester13 = ?
                   AND NOT EXISTS (
                       SELECT 1
                       FROM Dengjx_Enrollments13 e
@@ -77,24 +107,41 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                   )
                 ORDER BY a.djx_AcademicYear13, a.djx_Semester13, c.djx_CourseCode13
                 """;
-        return jdbcTemplate.queryForList(sql, studentId);
+        return jdbcTemplate.queryForList(sql, context.classId(), context.grade(), context.semester(), studentId);
     }
 
+    @Transactional
     public Enrollment enroll(Long userId, Long assignmentId) {
+        ensureGlobalEnrollmentOpen();
         Long studentId = userContextService.getStudentId(userId);
         Assignment assignment = requireAssignment(assignmentId);
         if (!Boolean.TRUE.equals(assignment.getEnrollmentOpen())) {
             throw new BusinessException("该课程未开放选课");
         }
+        Map<String, Object> course = assignmentCourse(assignmentId);
+        if (!"ELECTIVE".equals(String.valueOf(course.get("djx_coursetype13")))) {
+            throw new BusinessException("必修课由系统自动修习，不能手动选课");
+        }
+        StudentTermContext context = studentTermContext(studentId);
+        if (!assignment.getClassId().equals(context.classId())
+                || numberValue(course.get("djx_targetgrade13")).intValue() != context.grade()
+                || numberValue(course.get("djx_targetsemester13")).intValue() != context.semester()) {
+            throw new BusinessException("只能选择当前年级学期开放的选修课");
+        }
         ensureCapacity(assignment);
         return createOrRestore(studentId, assignmentId, "SELECTED");
     }
 
+    @Transactional
     public Enrollment studentDrop(Long userId, Long assignmentId) {
         Long studentId = userContextService.getStudentId(userId);
         Enrollment enrollment = activeEnrollment(studentId, assignmentId);
         if (enrollment == null) {
             throw new BusinessException("未找到有效选课记录");
+        }
+        Map<String, Object> course = assignmentCourse(assignmentId);
+        if ("REQUIRED".equals(String.valueOf(course.get("djx_coursetype13")))) {
+            throw new BusinessException("必修课不能退课");
         }
         if (hasGrade(enrollment.getEnrollmentId())) {
             throw new BusinessException("已录入成绩的课程不能退课");
@@ -104,6 +151,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
 
     public List<Map<String, Object>> mine(Long userId) {
         Long studentId = userContextService.getStudentId(userId);
+        autoEnrollRequiredCourses(studentTermContext(studentId));
         String sql = """
                 SELECT e.djx_EnrollmentId13,
                        e.djx_AssignmentId13,
@@ -116,10 +164,13 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                        t.djx_Tname13,
                        a.djx_AcademicYear13,
                        a.djx_Semester13,
-                       a.djx_CourseType13
+                       mc.djx_CourseType13,
+                       mc.djx_TargetGrade13,
+                       mc.djx_TargetSemester13
                 FROM Dengjx_Enrollments13 e
                 JOIN Dengjx_TeachingAssignments13 a ON a.djx_AssignmentId13 = e.djx_AssignmentId13
-                JOIN Dengjx_Courses13 c ON c.djx_CourseId13 = a.djx_CourseId13
+                JOIN Dengjx_MajorCourses13 mc ON mc.djx_MajorCourseId13 = a.djx_MajorCourseId13
+                JOIN Dengjx_Courses13 c ON c.djx_CourseId13 = mc.djx_CourseId13
                 JOIN Dengjx_Teachers13 t ON t.djx_TeacherId13 = a.djx_TeacherId13
                 WHERE e.djx_StudentId13 = ?
                 ORDER BY e.djx_SelectedAt13 DESC
@@ -147,19 +198,44 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         return jdbcTemplate.queryForList(sql, assignmentId);
     }
 
-    public PageResult<Enrollment> adminList(long page, long size) {
-        Page<Enrollment> result = enrollmentMapper.selectPage(
-                new Page<>(page, size),
-                Wrappers.<Enrollment>lambdaQuery().orderByDesc(Enrollment::getSelectedAt));
-        return PageResult.of(result.getRecords(), result.getTotal(), result.getCurrent(), result.getSize());
+    public PageResult<Map<String, Object>> adminList(long page, long size) {
+        long offset = (page - 1) * size;
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList("""
+                SELECT e.djx_enrollmentid13 AS "enrollmentId",
+                       e.djx_status13 AS "status",
+                       e.djx_selectedat13 AS "selectedAt",
+                       e.djx_droppedat13 AS "droppedAt",
+                       s.djx_sno13 AS "sno",
+                       s.djx_sname13 AS "sname",
+                       cl.djx_classname13 AS "className",
+                       c.djx_coursecode13 AS "courseCode",
+                       c.djx_coursename13 AS "courseName",
+                       mc.djx_coursetype13 AS "courseType",
+                       t.djx_tname13 AS "teacherName",
+                       a.djx_academicyear13 AS "academicYear",
+                       a.djx_semester13 AS "semester"
+                FROM dengjx_enrollments13 e
+                JOIN dengjx_students13 s ON s.djx_studentid13 = e.djx_studentid13
+                JOIN dengjx_teachingassignments13 a ON a.djx_assignmentid13 = e.djx_assignmentid13
+                JOIN dengjx_majorcourses13 mc ON mc.djx_majorcourseid13 = a.djx_majorcourseid13
+                JOIN dengjx_courses13 c ON c.djx_courseid13 = mc.djx_courseid13
+                JOIN dengjx_teachers13 t ON t.djx_teacherid13 = a.djx_teacherid13
+                JOIN dengjx_classes13 cl ON cl.djx_classid13 = s.djx_classid13
+                ORDER BY e.djx_selectedat13 DESC
+                LIMIT ? OFFSET ?
+                """, size, offset);
+        Long total = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM dengjx_enrollments13", Long.class);
+        return PageResult.of(rows, total == null ? 0 : total, page, size);
     }
 
+    @Transactional
     public Enrollment adminCreate(EnrollmentRequest request) {
         Assignment assignment = requireAssignment(request.assignmentId());
         ensureCapacity(assignment);
         return createOrRestore(request.studentId(), request.assignmentId(), normalizeStatus(request.status()));
     }
 
+    @Transactional
     public Enrollment adminDrop(Long id) {
         Enrollment enrollment = enrollmentMapper.selectById(id);
         if (enrollment == null) {
@@ -183,6 +259,80 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         if (selectedCount >= assignment.getCapacity()) {
             throw new BusinessException("课程容量已满");
         }
+    }
+
+    private void ensureGlobalEnrollmentOpen() {
+        if (enrollmentSettingService != null && !enrollmentSettingService.isEnabled()) {
+            throw new BusinessException("当前未开放选课");
+        }
+    }
+
+    private void autoEnrollRequiredCourses(StudentTermContext context) {
+        List<Map<String, Object>> requiredAssignments = jdbcTemplate.queryForList("""
+                SELECT a.djx_assignmentid13
+                FROM dengjx_teachingassignments13 a
+                JOIN dengjx_majorcourses13 cplan ON cplan.djx_majorcourseid13 = a.djx_majorcourseid13
+                WHERE a.djx_classid13 = ?
+                  AND cplan.djx_coursetype13 = 'REQUIRED'
+                  AND cplan.djx_targetgrade13 = ?
+                  AND cplan.djx_targetsemester13 = ?
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM dengjx_enrollments13 e
+                      WHERE e.djx_studentid13 = ?
+                        AND e.djx_assignmentid13 = a.djx_assignmentid13
+                        AND e.djx_status13 IN ('SELECTED', 'COMPLETED')
+                  )
+                """, context.classId(), context.grade(), context.semester(), context.studentId());
+        for (Map<String, Object> row : requiredAssignments) {
+            Long assignmentId = ((Number) row.get("djx_assignmentid13")).longValue();
+            createOrRestore(context.studentId(), assignmentId, "SELECTED");
+        }
+    }
+
+    private StudentTermContext studentTermContext(Long studentId) {
+        Map<String, Object> row = jdbcTemplate.queryForMap("""
+                SELECT djx_studentid13,
+                       djx_classid13,
+                       djx_admissiondate13
+                FROM dengjx_students13
+                WHERE djx_studentid13 = ?
+                """, studentId);
+        LocalDate admissionDate = toLocalDate(row.get("djx_admissiondate13"));
+        AcademicTermService.AcademicTerm term = academicTermService.current(admissionDate);
+        return new StudentTermContext(
+                ((Number) row.get("djx_studentid13")).longValue(),
+                ((Number) row.get("djx_classid13")).longValue(),
+                term.grade(),
+                term.semester());
+    }
+
+    private Map<String, Object> assignmentCourse(Long assignmentId) {
+        return jdbcTemplate.queryForMap("""
+                SELECT mc.djx_coursetype13,
+                       mc.djx_targetgrade13,
+                       mc.djx_targetsemester13
+                FROM dengjx_teachingassignments13 a
+                JOIN dengjx_majorcourses13 mc ON mc.djx_majorcourseid13 = a.djx_majorcourseid13
+                WHERE a.djx_assignmentid13 = ?
+                """, assignmentId);
+    }
+
+    private Number numberValue(Object value) {
+        if (value instanceof Number number) {
+            return number;
+        }
+        throw new BusinessException("课程年级学期配置不完整");
+    }
+
+    private LocalDate toLocalDate(Object value) {
+        if (value instanceof LocalDate localDate) {
+            return localDate;
+        }
+        if (value instanceof Date date) {
+            return date.toLocalDate();
+        }
+        throw new BusinessException("学生入学时间配置不完整");
     }
 
     private Enrollment createOrRestore(Long studentId, Long assignmentId, String status) {
@@ -249,5 +399,8 @@ public class EnrollmentServiceImpl implements EnrollmentService {
             throw new BusinessException("选课状态不合法");
         }
         return status;
+    }
+
+    private record StudentTermContext(Long studentId, Long classId, int grade, int semester) {
     }
 }

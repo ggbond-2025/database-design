@@ -45,12 +45,12 @@ const menuItems = computed(() => {
   if (auth.role === 'ADMIN') {
     return [
       { index: '/admin/dashboard', label: '管理仪表盘', icon: DataBoard },
-      { index: '/admin/regions', label: '地区管理', icon: OfficeBuilding },
       { index: '/admin/majors', label: '专业管理', icon: School },
       { index: '/admin/classes', label: '班级管理', icon: Files },
       { index: '/admin/students', label: '学生管理', icon: UserFilled },
       { index: '/admin/teachers', label: '教师管理', icon: User },
       { index: '/admin/courses', label: '课程管理', icon: Notebook },
+      { index: '/admin/major-courses', label: '专业课程计划', icon: School },
       { index: '/admin/assignments', label: '开课安排', icon: Tickets },
       { index: '/admin/enrollments', label: '选课记录', icon: Reading },
       { index: '/admin/grades', label: '成绩管理', icon: DataAnalysis },
@@ -75,6 +75,7 @@ const menuItems = computed(() => {
     { index: '/student/courses', label: '我的课程', icon: Notebook },
     { index: '/student/grades', label: '我的成绩', icon: DataAnalysis },
     { index: '/student/credits', label: '我的学分', icon: DataBoard },
+    { index: '/student/classmates', label: '我的班级', icon: OfficeBuilding },
     { index: '/student/rank', label: '我的排名', icon: Files },
     { index: '/student/profile', label: '本人信息', icon: User }
   ]

@@ -3,8 +3,6 @@ package com.dengjx.affairs.service.impl;
 import com.dengjx.affairs.mapper.AssignmentMapper;
 import com.dengjx.affairs.entity.Assignment;
 import com.dengjx.affairs.service.AssignmentService;
-import java.util.Set;
-
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.dengjx.affairs.dto.AssignmentRequest;
@@ -16,8 +14,6 @@ import org.springframework.util.StringUtils;
 @Service
 public class AssignmentServiceImpl implements AssignmentService {
 
-    private static final Set<String> COURSE_TYPES = Set.of("REQUIRED", "ELECTIVE");
-
     private final AssignmentMapper assignmentMapper;
 
     public AssignmentServiceImpl(AssignmentMapper assignmentMapper) {
@@ -27,7 +23,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     public PageResult<Assignment> list(String keyword, long page, long size) {
         LambdaQueryWrapper<Assignment> wrapper = new LambdaQueryWrapper<>();
         if (StringUtils.hasText(keyword)) {
-            wrapper.like(Assignment::getAcademicYear, keyword).or().like(Assignment::getCourseType, keyword);
+            wrapper.like(Assignment::getAcademicYear, keyword);
         }
         wrapper.orderByAsc(Assignment::getAssignmentId);
         Page<Assignment> result = assignmentMapper.selectPage(new Page<>(page, size), wrapper);
@@ -71,18 +67,14 @@ public class AssignmentServiceImpl implements AssignmentService {
         if (request.capacity() == null || request.capacity() <= 0) {
             throw new BusinessException("课程容量必须大于0");
         }
-        if (!COURSE_TYPES.contains(request.courseType())) {
-            throw new BusinessException("课程类型必须为REQUIRED或ELECTIVE");
-        }
     }
 
     private void apply(AssignmentRequest request, Assignment assignment) {
-        assignment.setCourseId(request.courseId());
+        assignment.setMajorCourseId(request.majorCourseId());
         assignment.setClassId(request.classId());
         assignment.setTeacherId(request.teacherId());
         assignment.setAcademicYear(request.academicYear());
         assignment.setSemester(request.semester());
-        assignment.setCourseType(request.courseType());
         assignment.setCapacity(request.capacity());
         assignment.setEnrollmentOpen(Boolean.TRUE.equals(request.enrollmentOpen()));
     }

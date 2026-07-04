@@ -3,6 +3,8 @@ package com.dengjx.affairs.service.impl;
 import com.dengjx.affairs.mapper.MajorMapper;
 import com.dengjx.affairs.entity.Major;
 import com.dengjx.affairs.service.MajorService;
+import java.math.BigDecimal;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.dengjx.affairs.common.BusinessException;
@@ -39,15 +41,17 @@ public class MajorServiceImpl implements MajorService {
     }
 
     public Major create(MajorRequest request) {
+        validate(request);
         Major major = new Major();
-        major.setMajorName(request.majorName());
+        apply(request, major);
         majorMapper.insert(major);
         return major;
     }
 
     public Major update(Long id, MajorRequest request) {
+        validate(request);
         Major major = getById(id);
-        major.setMajorName(request.majorName());
+        apply(request, major);
         majorMapper.updateById(major);
         return major;
     }
@@ -56,5 +60,16 @@ public class MajorServiceImpl implements MajorService {
         if (majorMapper.deleteById(id) == 0) {
             throw new BusinessException("专业不存在");
         }
+    }
+
+    private void validate(MajorRequest request) {
+        if (request.graduationCredits() == null || request.graduationCredits().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessException("毕业学分必须大于0");
+        }
+    }
+
+    private void apply(MajorRequest request, Major major) {
+        major.setMajorName(request.majorName());
+        major.setGraduationCredits(request.graduationCredits());
     }
 }

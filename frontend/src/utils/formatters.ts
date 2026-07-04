@@ -69,7 +69,26 @@ export function formatDateTime(value: unknown) {
   if (!value) {
     return '-'
   }
-  return String(value).replace('T', ' ')
+  const text = String(value)
+  if (text.endsWith('Z')) {
+    return new Intl.DateTimeFormat('zh-CN', {
+      timeZone: 'Asia/Shanghai',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    })
+      .format(new Date(text))
+      .replace(/\//g, '-')
+  }
+  return text.replace('T', ' ').slice(0, 16)
+}
+
+export function formatGradeTerm(grade: unknown, semester: unknown) {
+  const gradeText = ['大一', '大二', '大三', '大四'][Number(grade) - 1] ?? `大${grade}`
+  return `${gradeText}${Number(semester) === 1 ? '上学期' : '下学期'}`
 }
 
 export function formatEnum(value: unknown, labels: Record<string, string>) {

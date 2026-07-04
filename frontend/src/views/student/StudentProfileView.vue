@@ -32,6 +32,8 @@ onMounted(load)
       <el-descriptions-item label="年龄">{{ profile?.studentAge ?? '-' }}</el-descriptions-item>
       <el-descriptions-item label="班级">{{ profile?.className || '-' }}</el-descriptions-item>
       <el-descriptions-item label="专业">{{ profile?.majorName || '-' }}</el-descriptions-item>
+      <el-descriptions-item label="当前年级">{{ profile?.currentGrade ? `大${profile.currentGrade}` : '-' }}</el-descriptions-item>
+      <el-descriptions-item label="当前学期">{{ profile?.currentTermLabel || '-' }}</el-descriptions-item>
       <el-descriptions-item label="生源地">{{ profile?.regionName || '-' }}</el-descriptions-item>
       <el-descriptions-item label="已修学分">{{ formatNumber(profile?.totalCredits) }}</el-descriptions-item>
     </el-descriptions>

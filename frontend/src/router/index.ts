@@ -9,6 +9,7 @@ import AdminDashboardView from '@/views/admin/AdminDashboardView.vue'
 import EnrollmentManagementView from '@/views/admin/EnrollmentManagementView.vue'
 import GradeManagementView from '@/views/admin/GradeManagementView.vue'
 import MajorManagementView from '@/views/admin/MajorManagementView.vue'
+import MajorCourseManagementView from '@/views/admin/MajorCourseManagementView.vue'
 import RegionManagementView from '@/views/admin/RegionManagementView.vue'
 import StatisticsView from '@/views/admin/StatisticsView.vue'
 import StudentManagementView from '@/views/admin/StudentManagementView.vue'
@@ -20,6 +21,7 @@ import MyCoursesView from '@/views/student/MyCoursesView.vue'
 import MyCreditsView from '@/views/student/MyCreditsView.vue'
 import MyEnrollmentsView from '@/views/student/MyEnrollmentsView.vue'
 import MyGradesView from '@/views/student/MyGradesView.vue'
+import MyClassmatesView from '@/views/student/MyClassmatesView.vue'
 import MyRankView from '@/views/student/MyRankView.vue'
 import StudentProfileView from '@/views/student/StudentProfileView.vue'
 import StudentDashboardView from '@/views/student/StudentDashboardView.vue'
@@ -81,6 +83,11 @@ const router = createRouter({
         {
           path: 'admin/courses',
           component: CourseManagementView,
+          meta: { role: 'ADMIN' }
+        },
+        {
+          path: 'admin/major-courses',
+          component: MajorCourseManagementView,
           meta: { role: 'ADMIN' }
         },
         {
@@ -168,6 +175,11 @@ const router = createRouter({
         {
           path: 'student/credits',
           component: MyCreditsView,
+          meta: { role: 'STUDENT' }
+        },
+        {
+          path: 'student/classmates',
+          component: MyClassmatesView,
           meta: { role: 'STUDENT' }
         },
         {

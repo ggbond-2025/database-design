@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 import { teacherGet } from '@/api/modules/teacher'
 import PageContainer from '@/components/PageContainer.vue'
@@ -7,6 +8,7 @@ import { formatSemester, type Row } from '@/utils/formatters'
 
 const loading = ref(false)
 const rows = ref<Row[]>([])
+const router = useRouter()
 
 async function load() {
   loading.value = true
@@ -18,6 +20,18 @@ async function load() {
 }
 
 onMounted(load)
+
+function openStudents(row: Row) {
+  router.push({ path: '/teacher/enrollments', query: { assignmentId: String(row.djx_assignmentid13) } })
+}
+
+function openGrades(row: Row) {
+  router.push({ path: '/teacher/grades', query: { assignmentId: String(row.djx_assignmentid13) } })
+}
+
+function openRank(row: Row) {
+  router.push({ path: '/teacher/statistics', query: { assignmentId: String(row.djx_assignmentid13) } })
+}
 </script>
 
 <template>
@@ -32,6 +46,13 @@ onMounted(load)
         <template #default="{ row }">{{ formatSemester(row.djx_semester13) }}</template>
       </el-table-column>
       <el-table-column prop="djx_averagescore13" label="平均分" />
+      <el-table-column label="操作" width="240" fixed="right">
+        <template #default="{ row }">
+          <el-button type="primary" link @click="openStudents(row)">名单</el-button>
+          <el-button type="primary" link @click="openGrades(row)">录成绩</el-button>
+          <el-button type="primary" link @click="openRank(row)">排名</el-button>
+        </template>
+      </el-table-column>
     </el-table>
   </PageContainer>
 </template>

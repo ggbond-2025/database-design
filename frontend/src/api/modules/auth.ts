@@ -20,6 +20,9 @@ export interface CurrentUserProfile {
   className?: string
   majorName?: string
   regionName?: string
+  currentGrade?: number
+  currentSemester?: number
+  currentTermLabel?: string
   totalCredits?: number | string
   teacherId?: number
   teacherNo?: string

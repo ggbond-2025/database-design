@@ -13,8 +13,8 @@ public class Assignment {
     @TableId(value = "djx_assignmentid13", type = IdType.AUTO)
     private Long assignmentId;
 
-    @TableField("djx_courseid13")
-    private Long courseId;
+    @TableField("djx_majorcourseid13")
+    private Long majorCourseId;
 
     @TableField("djx_classid13")
     private Long classId;
@@ -27,9 +27,6 @@ public class Assignment {
 
     @TableField("djx_semester13")
     private Integer semester;
-
-    @TableField("djx_coursetype13")
-    private String courseType;
 
     @TableField("djx_capacity13")
     private Integer capacity;

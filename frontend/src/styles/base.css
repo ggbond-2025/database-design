@@ -320,6 +320,10 @@ input {
   margin-top: 16px;
 }
 
+.stats-tabs {
+  margin-top: 16px;
+}
+
 .inline-form {
   display: flex;
   flex-wrap: wrap;

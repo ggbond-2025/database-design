@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 
 import { teacherGet } from '@/api/modules/teacher'
 import PageContainer from '@/components/PageContainer.vue'
@@ -9,6 +10,7 @@ const assignmentId = ref<number>()
 const loading = ref(false)
 const assignments = ref<Row[]>([])
 const rows = ref<Row[]>([])
+const route = useRoute()
 
 async function load() {
   if (!assignmentId.value) return
@@ -22,13 +24,18 @@ async function load() {
 
 onMounted(async () => {
   assignments.value = await teacherGet('/statistics/course-averages')
+  const queryAssignmentId = Number(route.query.assignmentId)
+  if (queryAssignmentId) {
+    assignmentId.value = queryAssignmentId
+    await load()
+  }
 })
 </script>
 
 <template>
   <PageContainer title="选课名单" description="选择本人任课课程，查看已选、已完成或退选学生。">
     <div class="inline-form">
-      <el-select v-model="assignmentId" class="query-select" placeholder="请选择任课课程">
+      <el-select v-model="assignmentId" class="query-select" placeholder="请选择任课课程" @change="load">
         <el-option
           v-for="assignment in assignments"
           :key="String(assignment.djx_assignmentid13)"

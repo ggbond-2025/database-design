@@ -10,6 +10,7 @@ import com.dengjx.affairs.entity.Course;
 import com.dengjx.affairs.entity.Enrollment;
 import com.dengjx.affairs.entity.Grade;
 import com.dengjx.affairs.entity.Major;
+import com.dengjx.affairs.entity.MajorCourse;
 import com.dengjx.affairs.entity.Region;
 import com.dengjx.affairs.entity.SchoolClass;
 import com.dengjx.affairs.entity.Student;
@@ -28,6 +29,7 @@ class EntityMappingTests {
             Enrollment.class,
             Grade.class,
             Major.class,
+            MajorCourse.class,
             Region.class,
             SchoolClass.class,
             Student.class,

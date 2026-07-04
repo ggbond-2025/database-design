@@ -6,11 +6,12 @@ export interface FieldOption {
 export interface FieldConfig {
   prop: string
   label: string
-  type?: 'text' | 'number' | 'boolean' | 'select'
+  type?: 'text' | 'number' | 'boolean' | 'select' | 'date'
   required?: boolean
   table?: boolean
   form?: boolean
   options?: FieldOption[]
+  lookup?: string
 }
 
 export interface CrudPageConfig {

@@ -3,12 +3,13 @@ import { onMounted, reactive, ref } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
 
-import { deleteAdmin, getAdminList, postAdmin } from '@/api/modules/admin'
+import { deleteAdmin, getAdminList, getLookupOptions, postAdmin, putAdmin } from '@/api/modules/admin'
 import ConfirmDeleteButton from '@/components/ConfirmDeleteButton.vue'
 import PageContainer from '@/components/PageContainer.vue'
 import type { PageResult } from '@/api/modules/crud'
+import type { FieldOption } from '@/components/crudTypes'
 import { enrollmentStatusOptions } from './adminConfigs'
-import { formatDateTime, formatEnrollmentStatus } from '@/utils/formatters'
+import { formatCourseType, formatDateTime, formatEnrollmentStatus, formatSemester } from '@/utils/formatters'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -17,6 +18,9 @@ const page = ref(1)
 const size = ref(10)
 const total = ref(0)
 const rows = ref<Record<string, unknown>[]>([])
+const studentOptions = ref<FieldOption[]>([])
+const assignmentOptions = ref<FieldOption[]>([])
+const enrollmentEnabled = ref(true)
 const formRef = ref<FormInstance>()
 const form = reactive({
   studentId: undefined as number | undefined,
@@ -25,8 +29,8 @@ const form = reactive({
 })
 
 const rules: FormRules = {
-  studentId: [{ required: true, message: '请填写学生编号', trigger: 'blur' }],
-  assignmentId: [{ required: true, message: '请填写开课安排编号', trigger: 'blur' }],
+  studentId: [{ required: true, message: '请选择学生', trigger: 'change' }],
+  assignmentId: [{ required: true, message: '请选择开课安排', trigger: 'change' }],
   status: [{ required: true, message: '请选择状态', trigger: 'change' }]
 }
 
@@ -42,6 +46,17 @@ async function load() {
   } finally {
     loading.value = false
   }
+}
+
+async function loadEnrollmentSetting() {
+  const setting = await getAdminList<Record<string, unknown>>('/admin/enrollment-setting')
+  enrollmentEnabled.value = Boolean(setting.enabled)
+}
+
+async function toggleEnrollmentSetting(value: string | number | boolean) {
+  await putAdmin('/admin/enrollment-setting', { enabled: Boolean(value) })
+  ElMessage.success(Boolean(value) ? '已开启学生选课' : '已关闭学生选课')
+  await loadEnrollmentSetting()
 }
 
 function openCreate() {
@@ -71,7 +86,18 @@ async function drop(row: Record<string, unknown>) {
   await load()
 }
 
-onMounted(load)
+onMounted(async () => {
+  await Promise.all([
+    load(),
+    loadEnrollmentSetting(),
+    getLookupOptions('students').then((options) => {
+      studentOptions.value = options
+    }),
+    getLookupOptions('assignments').then((options) => {
+      assignmentOptions.value = options
+    })
+  ])
+})
 </script>
 
 <template>
@@ -79,12 +105,27 @@ onMounted(load)
     <div class="data-toolbar">
       <el-button type="primary" @click="openCreate">新增/恢复选课</el-button>
       <el-button @click="load">刷新</el-button>
+      <el-switch
+        v-model="enrollmentEnabled"
+        active-text="学生选课已开启"
+        inactive-text="学生选课已关闭"
+        @change="toggleEnrollmentSetting"
+      />
     </div>
 
     <el-table v-loading="loading" :data="rows" border class="data-table">
-      <el-table-column prop="enrollmentId" label="记录编号" width="100" />
-      <el-table-column prop="studentId" label="学生编号" />
-      <el-table-column prop="assignmentId" label="开课安排编号" />
+      <el-table-column prop="sno" label="学号" />
+      <el-table-column prop="sname" label="学生姓名" />
+      <el-table-column prop="className" label="班级" />
+      <el-table-column prop="courseName" label="课程" />
+      <el-table-column prop="teacherName" label="任课教师" />
+      <el-table-column label="课程类型">
+        <template #default="{ row }">{{ formatCourseType(row.courseType) }}</template>
+      </el-table-column>
+      <el-table-column prop="academicYear" label="学年" />
+      <el-table-column label="学期">
+        <template #default="{ row }">{{ formatSemester(row.semester) }}</template>
+      </el-table-column>
       <el-table-column label="状态">
         <template #default="{ row }">{{ formatEnrollmentStatus(row.status) }}</template>
       </el-table-column>
@@ -115,11 +156,25 @@ onMounted(load)
 
     <el-dialog v-model="dialogVisible" title="新增/恢复选课" width="520px">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="110px">
-        <el-form-item label="学生编号" prop="studentId">
-          <el-input-number v-model="form.studentId" :min="1" class="full-control" controls-position="right" />
+        <el-form-item label="学生" prop="studentId">
+          <el-select v-model="form.studentId" class="full-control" filterable>
+            <el-option
+              v-for="option in studentOptions"
+              :key="String(option.value)"
+              :label="option.label"
+              :value="Number(option.value)"
+            />
+          </el-select>
         </el-form-item>
-        <el-form-item label="开课安排编号" prop="assignmentId">
-          <el-input-number v-model="form.assignmentId" :min="1" class="full-control" controls-position="right" />
+        <el-form-item label="开课安排" prop="assignmentId">
+          <el-select v-model="form.assignmentId" class="full-control" filterable>
+            <el-option
+              v-for="option in assignmentOptions"
+              :key="String(option.value)"
+              :label="option.label"
+              :value="Number(option.value)"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-select v-model="form.status" class="full-control">

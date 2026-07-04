@@ -3,11 +3,12 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
 
+import { getLookupOptions } from '@/api/modules/admin'
 import { crudApi } from '@/api/modules/crud'
 import ConfirmDeleteButton from '@/components/ConfirmDeleteButton.vue'
 import DataToolbar from '@/components/DataToolbar.vue'
 import PageContainer from '@/components/PageContainer.vue'
-import type { CrudPageConfig, FieldConfig } from '@/components/crudTypes'
+import type { CrudPageConfig, FieldConfig, FieldOption } from '@/components/crudTypes'
 
 const props = defineProps<{
   config: CrudPageConfig
@@ -21,6 +22,7 @@ const page = ref(1)
 const size = ref(10)
 const total = ref(0)
 const rows = ref<Record<string, unknown>[]>([])
+const lookupOptions = reactive<Record<string, FieldOption[]>>({})
 const formRef = ref<FormInstance>()
 const form = reactive<Record<string, unknown>>({})
 const editingId = ref<number | string | null>(null)
@@ -50,13 +52,27 @@ async function load() {
   }
 }
 
-function openCreate() {
+async function ensureLookups() {
+  const lookupNames = [...new Set(formFields.value.map((field) => field.lookup).filter(Boolean))]
+  await Promise.all(
+    lookupNames.map(async (name) => {
+      if (!name || lookupOptions[name]) {
+        return
+      }
+      lookupOptions[name] = await getLookupOptions(name)
+    })
+  )
+}
+
+async function openCreate() {
+  await ensureLookups()
   editingId.value = null
   resetForm()
   dialogVisible.value = true
 }
 
-function openEdit(row: Record<string, unknown>) {
+async function openEdit(row: Record<string, unknown>) {
+  await ensureLookups()
   editingId.value = row[props.config.rowKey] as number | string
   resetForm(row)
   dialogVisible.value = true
@@ -110,11 +126,20 @@ function renderValue(row: Record<string, unknown>, field: FieldConfig) {
   if (field.type === 'boolean') {
     return value ? '是' : '否'
   }
-  const option = field.options?.find((item) => item.value === value)
+  const option = fieldOptions(field).find((item) => item.value === value)
   return option?.label ?? String(value ?? '')
 }
 
-onMounted(load)
+function fieldOptions(field: FieldConfig) {
+  if (field.lookup) {
+    return lookupOptions[field.lookup] ?? field.options ?? []
+  }
+  return field.options ?? []
+}
+
+onMounted(async () => {
+  await Promise.all([load(), ensureLookups()])
+})
 </script>
 
 <template>
@@ -167,9 +192,22 @@ onMounted(load)
             class="full-control"
           />
           <el-switch v-else-if="field.type === 'boolean'" v-model="form[field.prop] as boolean" />
-          <el-select v-else-if="field.type === 'select'" v-model="form[field.prop]" class="full-control">
+          <el-date-picker
+            v-else-if="field.type === 'date'"
+            v-model="form[field.prop] as string"
+            type="date"
+            value-format="YYYY-MM-DD"
+            class="full-control"
+          />
+          <el-select
+            v-else-if="field.type === 'select'"
+            v-model="form[field.prop]"
+            class="full-control"
+            filterable
+            clearable
+          >
             <el-option
-              v-for="option in field.options"
+              v-for="option in fieldOptions(field)"
               :key="String(option.value)"
               :label="option.label"
               :value="option.value"

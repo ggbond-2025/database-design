@@ -34,6 +34,35 @@ mvn test
 - `common`：通用响应、分页和异常处理。
 - `security`：JWT、认证用户和当前用户上下文。
 
+## 协同接口说明
+
+本系统为前端表单提供管理员 lookup 接口，统一返回 `{ value, label }` 结构，用于课程、班级、教师、学生等下拉选择，避免前端页面手动输入数据库编号。
+
+当前 lookup 接口统一位于 `/api/admin/lookups/**`，包括：
+
+- `/api/admin/lookups/regions`
+- `/api/admin/lookups/majors`
+- `/api/admin/lookups/classes`
+- `/api/admin/lookups/students`
+- `/api/admin/lookups/teachers`
+- `/api/admin/lookups/courses`
+- `/api/admin/lookups/major-courses`
+- `/api/admin/lookups/assignments`
+- `/api/admin/lookups/active-enrollments`
+
+选课和成绩写操作已设置事务边界，涉及选课状态、成绩记录和学分统计联动时，应继续保持在服务层统一处理。
+
+## 当前业务规则
+
+- 学生当前年级学期按入学日期和北京时间计算：9月至次年1月为上学期，2月至8月为下学期。
+- 课程管理只维护课程基础信息；课程类型、开设年级、开设学期在专业课程计划中维护。
+- 开课安排关联专业课程计划，避免同一课程在不同专业中重复维护课程基础信息。
+- 必修课到达对应年级学期后由系统自动写入有效选课记录，学生端不提供手动选课和退课。
+- 学生端可选课程只返回当前年级学期、本班级、已开放且未选过的专业选修课。
+- 管理员可通过 `/api/admin/enrollment-setting` 查看和修改全局选课开关。
+- 专业毕业所需学分在专业管理维护，学生学分汇总接口会返回毕业学分信息。
+- 学生累计学分在 `Dengjx_Students13.djx_TotalCredits13` 中保留验收用缓存，由成绩触发器自动维护；`V_Dengjx_StudentCreditSummary13` 同时返回缓存学分和实时计算学分用于核对。
+
 ## 异常返回说明
 
 后端统一使用 `ApiResponse` 返回异常信息：`success=false`，`message` 为可直接展示的错误摘要，`data` 为错误定位详情。`data` 中包含 `traceId`、`code`、`path`、`method`、`exception`、`rootCause`、`location`、`details` 和 `timestamp`，前端可把 `traceId` 提供给后端对照控制台日志排查。

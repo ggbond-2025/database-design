@@ -1,5 +1,7 @@
 package com.dengjx.affairs.dto;
 
+import java.time.LocalDate;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -9,5 +11,6 @@ public record StudentRequest(
         @NotBlank(message = "性别不能为空") String gender,
         @NotNull(message = "年龄不能为空") Integer age,
         @NotNull(message = "班级不能为空") Long classId,
-        @NotNull(message = "地区不能为空") Long regionId) {
+        @NotNull(message = "地区不能为空") Long regionId,
+        @NotNull(message = "入学时间不能为空") LocalDate admissionDate) {
 }

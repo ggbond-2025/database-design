@@ -20,7 +20,7 @@ public interface EnrollmentService {
 
     List<Map<String, Object>> assignmentStudents(AuthenticatedUser user, Long assignmentId);
 
-    PageResult<Enrollment> adminList(long page, long size);
+    PageResult<Map<String, Object>> adminList(long page, long size);
 
     Enrollment adminCreate(EnrollmentRequest request);
 

@@ -1,5 +1,7 @@
 package com.dengjx.affairs.entity;
 
+import java.math.BigDecimal;
+
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -15,4 +17,7 @@ public class Major {
 
     @TableField("djx_majorname13")
     private String majorName;
+
+    @TableField("djx_graduationcredits13")
+    private BigDecimal graduationCredits;
 }

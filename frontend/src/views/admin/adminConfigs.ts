@@ -34,12 +34,13 @@ export const regionConfig: CrudPageConfig = {
 
 export const majorConfig: CrudPageConfig = {
   title: '专业管理',
-  description: '维护学校专业基础数据。',
+  description: '维护学校专业基础数据和毕业所需学分。',
   resource: 'majors',
   rowKey: 'majorId',
   fields: [
     { prop: 'majorId', label: '专业编号', form: false },
-    { prop: 'majorName', label: '专业名称', required: true }
+    { prop: 'majorName', label: '专业名称', required: true },
+    { prop: 'graduationCredits', label: '毕业所需学分', type: 'number', required: true }
   ]
 }
 
@@ -51,7 +52,7 @@ export const classConfig: CrudPageConfig = {
   fields: [
     { prop: 'classId', label: '班级编号', form: false },
     { prop: 'className', label: '班级名称', required: true },
-    { prop: 'majorId', label: '专业编号', type: 'number', required: true },
+    { prop: 'majorId', label: '所属专业', type: 'select', required: true, lookup: 'majors' },
     { prop: 'gradeYear', label: '年级', type: 'number', required: true }
   ]
 }
@@ -67,9 +68,9 @@ export const studentConfig: CrudPageConfig = {
     { prop: 'sname', label: '姓名', required: true },
     { prop: 'gender', label: '性别', type: 'select', required: true, options: genderOptions },
     { prop: 'age', label: '年龄', type: 'number', required: true },
-    { prop: 'classId', label: '班级编号', type: 'number', required: true },
-    { prop: 'regionId', label: '地区编号', type: 'number', required: true },
-    { prop: 'totalCredits', label: '已修学分', form: false }
+    { prop: 'classId', label: '所属班级', type: 'select', required: true, lookup: 'classes' },
+    { prop: 'regionId', label: '生源地区', type: 'select', required: true, lookup: 'regions' },
+    { prop: 'admissionDate', label: '入学时间', type: 'date', required: true }
   ]
 }
 
@@ -91,7 +92,7 @@ export const teacherConfig: CrudPageConfig = {
 
 export const courseConfig: CrudPageConfig = {
   title: '课程管理',
-  description: '维护课程编号、学时、考核方式和学分。',
+  description: '维护课程编号、课程名称、学时、考核方式和学分。',
   resource: 'courses',
   rowKey: 'courseId',
   fields: [
@@ -104,16 +105,39 @@ export const courseConfig: CrudPageConfig = {
   ]
 }
 
+export const majorCourseConfig: CrudPageConfig = {
+  title: '专业课程计划',
+  description: '维护不同专业的必修/选修课程及建议修读年级学期。',
+  resource: 'major-courses',
+  rowKey: 'majorCourseId',
+  fields: [
+    { prop: 'majorCourseId', label: '计划编号', form: false },
+    { prop: 'majorId', label: '所属专业', type: 'select', required: true, lookup: 'majors' },
+    { prop: 'courseId', label: '课程', type: 'select', required: true, lookup: 'courses' },
+    { prop: 'courseType', label: '课程类型', type: 'select', required: true, options: courseTypeOptions },
+    { prop: 'targetGrade', label: '开设年级', type: 'select', required: true, options: [
+      { label: '大一', value: 1 },
+      { label: '大二', value: 2 },
+      { label: '大三', value: 3 },
+      { label: '大四', value: 4 }
+    ] },
+    { prop: 'targetSemester', label: '开设学期', type: 'select', required: true, options: [
+      { label: '上学期', value: 1 },
+      { label: '下学期', value: 2 }
+    ] }
+  ]
+}
+
 export const assignmentConfig: CrudPageConfig = {
   title: '开课安排',
-  description: '按课程、班级、教师、学年学期发布必修或选修课程。',
+  description: '按专业课程计划、班级、教师、学年学期发布开课安排。',
   resource: 'assignments',
   rowKey: 'assignmentId',
   fields: [
     { prop: 'assignmentId', label: '开课安排编号', form: false },
-    { prop: 'courseId', label: '课程记录编号', type: 'number', required: true },
-    { prop: 'classId', label: '班级编号', type: 'number', required: true },
-    { prop: 'teacherId', label: '教师记录编号', type: 'number', required: true },
+    { prop: 'majorCourseId', label: '专业课程计划', type: 'select', required: true, lookup: 'major-courses' },
+    { prop: 'classId', label: '班级', type: 'select', required: true, lookup: 'classes' },
+    { prop: 'teacherId', label: '教师', type: 'select', required: true, lookup: 'teachers' },
     { prop: 'academicYear', label: '学年', required: true },
     {
       prop: 'semester',
@@ -125,7 +149,6 @@ export const assignmentConfig: CrudPageConfig = {
         { label: '第2学期', value: 2 }
       ]
     },
-    { prop: 'courseType', label: '课程类型', type: 'select', required: true, options: courseTypeOptions },
     { prop: 'capacity', label: '容量', type: 'number', required: true },
     { prop: 'enrollmentOpen', label: '开放选课', type: 'boolean' }
   ]
@@ -138,7 +161,7 @@ export const gradeConfig: CrudPageConfig = {
   rowKey: 'gradeId',
   fields: [
     { prop: 'gradeId', label: '成绩编号', form: false },
-    { prop: 'enrollmentId', label: '选课记录编号', type: 'number', required: true },
+    { prop: 'enrollmentId', label: '选课记录', type: 'select', required: true, lookup: 'active-enrollments' },
     { prop: 'score', label: '成绩', type: 'number', required: true },
     { prop: 'gradedAt', label: '录入时间', form: false }
   ]
@@ -164,8 +187,8 @@ export const userConfig: CrudPageConfig = {
         { label: '学生', value: 'STUDENT' }
       ]
     },
-    { prop: 'studentId', label: '学生编号', type: 'number' },
-    { prop: 'teacherId', label: '教师记录编号', type: 'number' },
+    { prop: 'studentId', label: '绑定学生', type: 'select', lookup: 'students' },
+    { prop: 'teacherId', label: '绑定教师', type: 'select', lookup: 'teachers' },
     { prop: 'enabled', label: '启用', type: 'boolean' }
   ]
 }

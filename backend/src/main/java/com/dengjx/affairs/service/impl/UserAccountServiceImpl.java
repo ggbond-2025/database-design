@@ -76,6 +76,15 @@ public class UserAccountServiceImpl implements UserAccountService {
         if (creating && !StringUtils.hasText(request.password())) {
             throw new BusinessException("创建账号时密码不能为空");
         }
+        if ("STUDENT".equals(request.role()) && (request.studentId() == null || request.teacherId() != null)) {
+            throw new BusinessException("学生账号必须绑定学生且不能绑定教师");
+        }
+        if ("TEACHER".equals(request.role()) && (request.teacherId() == null || request.studentId() != null)) {
+            throw new BusinessException("教师账号必须绑定教师且不能绑定学生");
+        }
+        if ("ADMIN".equals(request.role()) && (request.studentId() != null || request.teacherId() != null)) {
+            throw new BusinessException("管理员账号不能绑定学生或教师");
+        }
     }
 
     private void apply(UserAccountRequest request, UserAccount user, boolean creating) {

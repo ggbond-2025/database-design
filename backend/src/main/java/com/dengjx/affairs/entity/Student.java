@@ -1,6 +1,7 @@
 package com.dengjx.affairs.entity;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
@@ -33,6 +34,10 @@ public class Student {
     @TableField("djx_regionid13")
     private Long regionId;
 
+    @TableField("djx_admissiondate13")
+    private LocalDate admissionDate;
+
     @TableField("djx_totalcredits13")
     private BigDecimal totalCredits;
+
 }

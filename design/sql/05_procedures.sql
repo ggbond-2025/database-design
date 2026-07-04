@@ -18,7 +18,8 @@ BEGIN
         FROM Dengjx_Grades13 g
         JOIN Dengjx_Enrollments13 e ON e.djx_EnrollmentId13 = g.djx_EnrollmentId13
         JOIN Dengjx_TeachingAssignments13 a ON a.djx_AssignmentId13 = e.djx_AssignmentId13
-        JOIN Dengjx_Courses13 c ON c.djx_CourseId13 = a.djx_CourseId13
+        JOIN Dengjx_MajorCourses13 mc ON mc.djx_MajorCourseId13 = a.djx_MajorCourseId13
+        JOIN Dengjx_Courses13 c ON c.djx_CourseId13 = mc.djx_CourseId13
         JOIN Dengjx_Teachers13 t ON t.djx_TeacherId13 = a.djx_TeacherId13
         WHERE e.djx_StudentId13 = student_id
           AND a.djx_AcademicYear13 = academic_year

@@ -56,6 +56,18 @@ public class GradeController {
         return ApiResponse.ok(gradeService.teacherUpdate(user.userId(), id, request));
     }
 
+    @GetMapping("/api/admin/grades/assignments")
+    public ApiResponse<PageResult<Map<String, Object>>> adminAssignmentList(
+            @RequestParam(defaultValue = "1") long page,
+            @RequestParam(defaultValue = "10") long size) {
+        return ApiResponse.ok(gradeService.adminAssignmentList(page, size));
+    }
+
+    @GetMapping("/api/admin/grades/assignments/{assignmentId}/students")
+    public ApiResponse<List<Map<String, Object>>> adminAssignmentGrades(@PathVariable Long assignmentId) {
+        return ApiResponse.ok(gradeService.adminAssignmentGrades(assignmentId));
+    }
+
     @GetMapping("/api/admin/grades")
     public ApiResponse<PageResult<Grade>> adminList(
             @RequestParam(defaultValue = "1") long page,

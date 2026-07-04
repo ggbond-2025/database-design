@@ -6,12 +6,25 @@ import PageContainer from '@/components/PageContainer.vue'
 import { formatNumber, type Row } from '@/utils/formatters'
 
 const summary = ref<Row>({})
+const status = ref<Row>({})
 const isCreditConsistent = computed(() => {
   return String(summary.value.djx_totalcredits13 ?? '') === String(summary.value.djx_calculatedcredits13 ?? '')
 })
+const remainingCredits = computed(() => {
+  return Math.max(
+    0,
+    Number(status.value.graduationCredits ?? summary.value.djx_graduationcredits13 ?? 0) -
+      Number(summary.value.djx_totalcredits13 ?? 0)
+  )
+})
 
 onMounted(async () => {
-  summary.value = await studentGet<Record<string, unknown>>('/statistics/credits')
+  const [creditSummary, academicStatus] = await Promise.all([
+    studentGet<Record<string, unknown>>('/statistics/credits'),
+    studentGet<Record<string, unknown>>('/profile/academic-status')
+  ])
+  summary.value = creditSummary
+  status.value = academicStatus
 })
 </script>
 
@@ -31,8 +44,12 @@ onMounted(async () => {
         <strong>{{ formatNumber(summary.djx_completedcourses13) }}</strong>
       </div>
       <div class="metric-card">
-        <span>校验学分</span>
-        <strong>{{ formatNumber(summary.djx_calculatedcredits13) }}</strong>
+        <span>毕业所需学分</span>
+        <strong>{{ formatNumber(status.graduationCredits ?? summary.djx_graduationcredits13) }}</strong>
+      </div>
+      <div class="metric-card">
+        <span>剩余学分</span>
+        <strong>{{ formatNumber(remainingCredits) }}</strong>
       </div>
     </div>
 
@@ -46,6 +63,8 @@ onMounted(async () => {
     <el-descriptions border :column="2">
       <el-descriptions-item label="学号">{{ summary.djx_sno13 || '-' }}</el-descriptions-item>
       <el-descriptions-item label="姓名">{{ summary.djx_sname13 || '-' }}</el-descriptions-item>
+      <el-descriptions-item label="专业">{{ status.majorName || summary.djx_majorname13 || '-' }}</el-descriptions-item>
+      <el-descriptions-item label="当前学期">{{ status.currentTermLabel || '-' }}</el-descriptions-item>
     </el-descriptions>
   </PageContainer>
 </template>

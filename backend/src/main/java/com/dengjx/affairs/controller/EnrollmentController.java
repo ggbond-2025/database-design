@@ -60,7 +60,7 @@ public class EnrollmentController {
     }
 
     @GetMapping("/api/admin/enrollments")
-    public ApiResponse<PageResult<Enrollment>> adminList(
+    public ApiResponse<PageResult<Map<String, Object>>> adminList(
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "10") long size) {
         return ApiResponse.ok(enrollmentService.adminList(page, size));
