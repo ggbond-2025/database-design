@@ -42,17 +42,19 @@ class GlobalExceptionHandlerTests {
     }
 
     @Test
-    void unexpectedExceptionReturnsDebuggableDetails() {
+    void unexpectedExceptionReturnsGenericMessageWithoutInternalDetails() {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/admin/students");
         RuntimeException exception = new RuntimeException("student insert failed");
 
         ApiResponse<ErrorDetail> response = handler.handleException(exception, request);
 
         assertThat(response.success()).isFalse();
-        assertThat(response.message()).contains("student insert failed");
+        assertThat(response.message()).isEqualTo("系统异常，请联系管理员并提供错误追踪编号");
         assertThat(response.data().path()).isEqualTo("/api/admin/students");
         assertThat(response.data().method()).isEqualTo("POST");
         assertThat(response.data().exception()).isEqualTo(RuntimeException.class.getName());
+        assertThat(response.data().message()).isEqualTo("系统异常，请联系管理员并提供错误追踪编号");
+        assertThat(response.data().rootCause()).isEqualTo("系统异常，请联系管理员并提供错误追踪编号");
         assertThat(response.data().traceId()).isNotBlank();
         assertThat(response.data().location()).contains("GlobalExceptionHandlerTests");
     }

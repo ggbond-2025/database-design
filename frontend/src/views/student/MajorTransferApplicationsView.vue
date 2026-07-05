@@ -11,6 +11,8 @@ const loading = ref(false)
 const submitting = ref(false)
 const rows = ref<Row[]>([])
 const majors = ref<FieldOption[]>([])
+const transferApplicationEnabled = ref(true)
+const transferApplicationClosedMessage = '当前转专业申请未开放'
 const form = reactive({
   targetMajorId: undefined as number | undefined,
   reason: ''
@@ -25,7 +27,16 @@ async function load() {
   }
 }
 
+async function loadSetting() {
+  const setting = await studentGet<Record<string, unknown>>('/major-transfer-setting')
+  transferApplicationEnabled.value = Boolean(setting.enabled)
+}
+
 async function submit() {
+  if (!transferApplicationEnabled.value) {
+    ElMessage.warning(transferApplicationClosedMessage)
+    return
+  }
   if (!form.targetMajorId) {
     ElMessage.warning('请选择目标专业')
     return
@@ -60,8 +71,16 @@ function statusType(status: unknown) {
   return 'warning'
 }
 
+function effectiveTermLabel(row: Row) {
+  if (!row.effectiveAcademicYear || !row.effectiveSemester) {
+    return '-'
+  }
+  return `${row.effectiveAcademicYear} 第${row.effectiveSemester}学期`
+}
+
 onMounted(async () => {
   await Promise.all([
+    loadSetting(),
     load(),
     getStudentLookupOptions('majors').then((result) => {
       majors.value = result
@@ -72,7 +91,15 @@ onMounted(async () => {
 
 <template>
   <PageContainer title="转专业申请" description="提交想要转入的专业，由管理员审核；已修读课程和成绩会继续保留。">
-    <el-form class="query-card" label-width="96px">
+    <el-alert
+      v-if="!transferApplicationEnabled"
+      :title="transferApplicationClosedMessage"
+      description="管理员暂未开放学生转专业申请，历史申请记录仍可查看。"
+      type="warning"
+      show-icon
+      :closable="false"
+    />
+    <el-form v-else class="query-card" label-width="96px">
       <el-form-item label="目标专业" required>
         <el-select v-model="form.targetMajorId" class="full-control" filterable placeholder="选择目标专业">
           <el-option v-for="item in majors" :key="String(item.value)" :label="item.label" :value="Number(item.value)" />
@@ -100,6 +127,9 @@ onMounted(async () => {
       </el-table-column>
       <el-table-column label="审核时间" min-width="170">
         <template #default="{ row }">{{ formatDateTime(row.reviewedAt) }}</template>
+      </el-table-column>
+      <el-table-column label="生效学期" min-width="150">
+        <template #default="{ row }">{{ effectiveTermLabel(row) }}</template>
       </el-table-column>
       <el-table-column prop="reviewComment" label="审核意见" min-width="180" />
     </el-table>

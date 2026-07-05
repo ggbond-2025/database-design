@@ -9,18 +9,18 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@element-plus/icons-vue": "latest",
-    "axios": "latest",
-    "element-plus": "latest",
-    "pinia": "latest",
-    "vue": "latest",
-    "vue-router": "latest"
+    "@element-plus/icons-vue": "2.3.2",
+    "axios": "1.18.1",
+    "element-plus": "2.14.2",
+    "pinia": "3.0.4",
+    "vue": "3.5.39",
+    "vue-router": "5.1.0"
   },
   "devDependencies": {
-    "@types/node": "latest",
-    "@vitejs/plugin-vue": "latest",
-    "typescript": "latest",
-    "vite": "latest",
-    "vue-tsc": "latest"
+    "@types/node": "26.1.0",
+    "@vitejs/plugin-vue": "6.0.7",
+    "typescript": "6.0.3",
+    "vite": "8.1.2",
+    "vue-tsc": "3.3.6"
   }
 }

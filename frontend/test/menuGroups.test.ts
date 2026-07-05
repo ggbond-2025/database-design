@@ -16,11 +16,15 @@ test('admin menu is grouped by functional categories', () => {
       '管理仪表盘',
       '专业管理',
       '班级管理',
+      '教学楼管理',
+      '教室管理',
       '学生管理',
       '教师管理',
       '课程管理',
       '专业课程计划',
       '开课安排',
+      '期末考试',
+      '转专业审核',
       '选课记录',
       '成绩管理',
       '教学评价',
@@ -37,7 +41,7 @@ test('student menu groups keep schedule under course learning', () => {
   assert.ok(courseGroup)
   assert.deepEqual(
     courseGroup.items.map((item) => item.label),
-    ['可选课程', '我的选课', '我的课程', '我的课表', '教学评价']
+    ['可选课程', '我的选课', '我的课表', '教学评价', '期末考试']
   )
 })
 
@@ -48,12 +52,13 @@ test('teacher menu exposes teaching evaluations under teaching management', () =
   assert.ok(teachingGroup)
   assert.deepEqual(
     teachingGroup.items.map((item) => item.label),
-    ['我的任课', '选课名单', '成绩录入', '教学评价']
+    ['我的任课', '我的课表', '选课名单', '成绩录入', '教学评价', '期末考试']
   )
 })
 
 test('active route resolves its parent group', () => {
   assert.equal(findActiveMenuGroup('TEACHER', '/teacher/grades'), 'teacher-teaching')
+  assert.equal(findActiveMenuGroup('TEACHER', '/teacher/schedule'), 'teacher-teaching')
   assert.equal(findActiveMenuGroup('STUDENT', '/student/profile'), 'student-personal')
   assert.equal(findActiveMenuGroup('ADMIN', '/admin/not-found'), undefined)
 })

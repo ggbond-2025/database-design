@@ -35,6 +35,20 @@ public record ErrorDetail(
                 Instant.now());
     }
 
+    public ErrorDetail withPublicMessage(String publicMessage) {
+        return new ErrorDetail(
+                traceId,
+                code,
+                path,
+                method,
+                exception,
+                publicMessage,
+                publicMessage,
+                location,
+                details,
+                timestamp);
+    }
+
     private static Throwable rootCauseOf(Throwable throwable) {
         Throwable current = throwable;
         while (current.getCause() != null) {

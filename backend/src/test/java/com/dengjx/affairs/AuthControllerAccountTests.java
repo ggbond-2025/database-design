@@ -12,6 +12,8 @@ import com.dengjx.affairs.config.SecurityConfig;
 import com.dengjx.affairs.controller.AuthController;
 import com.dengjx.affairs.dto.ChangePasswordRequest;
 import com.dengjx.affairs.dto.CurrentUserProfileResponse;
+import com.dengjx.affairs.entity.UserAccount;
+import com.dengjx.affairs.mapper.UserAccountMapper;
 import com.dengjx.affairs.security.JwtAuthenticationFilter;
 import com.dengjx.affairs.security.JwtService;
 import com.dengjx.affairs.service.AuthService;
@@ -42,9 +44,13 @@ class AuthControllerAccountTests {
     @MockBean
     private AuthService authService;
 
+    @MockBean
+    private UserAccountMapper userAccountMapper;
+
     @Test
     void authenticatedUserCanChangeOwnPassword() throws Exception {
-        String token = jwtService.generateToken(7L, "student01", "STUDENT");
+        when(userAccountMapper.selectById(7L)).thenReturn(userAccount(7L, "student01", "STUDENT"));
+        String token = jwtService.generateToken(7L, "student01", "STUDENT", 0);
 
         mockMvc.perform(post("/api/auth/password")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -67,7 +73,8 @@ class AuthControllerAccountTests {
 
     @Test
     void authenticatedUserCanReadCurrentProfile() throws Exception {
-        String token = jwtService.generateToken(9L, "teacher01", "TEACHER");
+        when(userAccountMapper.selectById(9L)).thenReturn(userAccount(9L, "teacher01", "TEACHER"));
+        String token = jwtService.generateToken(9L, "teacher01", "TEACHER", 0);
         when(authService.currentProfile(9L)).thenReturn(new CurrentUserProfileResponse(
                 9L,
                 "teacher01",
@@ -101,5 +108,15 @@ class AuthControllerAccountTests {
                 .andExpect(jsonPath("$.data.role").value("TEACHER"))
                 .andExpect(jsonPath("$.data.teacherName").value("教师一"))
                 .andExpect(jsonPath("$.data.enabled").value(true));
+    }
+
+    private UserAccount userAccount(Long id, String username, String role) {
+        UserAccount account = new UserAccount();
+        account.setUserId(id);
+        account.setUsername(username);
+        account.setRole(role);
+        account.setEnabled(true);
+        account.setTokenVersion(0);
+        return account;
     }
 }

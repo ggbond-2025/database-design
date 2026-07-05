@@ -2,46 +2,52 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 import MainLayout from '@/layouts/MainLayout.vue'
 import { roleDashboard, useAuthStore, type Role } from '@/stores/auth'
-import AssignmentManagementView from '@/views/admin/AssignmentManagementView.vue'
-import ClassroomManagementView from '@/views/admin/ClassroomManagementView.vue'
-import ClassManagementView from '@/views/admin/ClassManagementView.vue'
-import CourseManagementView from '@/views/admin/CourseManagementView.vue'
-import AdminDashboardView from '@/views/admin/AdminDashboardView.vue'
-import EnrollmentManagementView from '@/views/admin/EnrollmentManagementView.vue'
-import FinalExamManagementView from '@/views/admin/FinalExamManagementView.vue'
-import GradeManagementView from '@/views/admin/GradeManagementView.vue'
-import MajorTransferApplicationManagementView from '@/views/admin/MajorTransferApplicationManagementView.vue'
-import MajorManagementView from '@/views/admin/MajorManagementView.vue'
-import MajorCourseManagementView from '@/views/admin/MajorCourseManagementView.vue'
-import RegionManagementView from '@/views/admin/RegionManagementView.vue'
-import StatisticsView from '@/views/admin/StatisticsView.vue'
-import StudentManagementView from '@/views/admin/StudentManagementView.vue'
-import TeachingEvaluationManagementView from '@/views/admin/TeachingEvaluationManagementView.vue'
-import TeacherManagementView from '@/views/admin/TeacherManagementView.vue'
-import TeachingBuildingManagementView from '@/views/admin/TeachingBuildingManagementView.vue'
-import UserManagementView from '@/views/admin/UserManagementView.vue'
-import LoginView from '@/views/login/LoginView.vue'
-import AvailableCoursesView from '@/views/student/AvailableCoursesView.vue'
-import MyCoursesView from '@/views/student/MyCoursesView.vue'
-import MyCreditsView from '@/views/student/MyCreditsView.vue'
-import MyEnrollmentsView from '@/views/student/MyEnrollmentsView.vue'
-import MyGradesView from '@/views/student/MyGradesView.vue'
-import MyClassmatesView from '@/views/student/MyClassmatesView.vue'
-import MyRankView from '@/views/student/MyRankView.vue'
-import MyScheduleView from '@/views/student/MyScheduleView.vue'
-import MajorTransferApplicationsView from '@/views/student/MajorTransferApplicationsView.vue'
-import StudentFinalExamsView from '@/views/student/StudentFinalExamsView.vue'
-import StudentProfileView from '@/views/student/StudentProfileView.vue'
-import StudentDashboardView from '@/views/student/StudentDashboardView.vue'
-import TeachingEvaluationsView from '@/views/student/TeachingEvaluationsView.vue'
-import TeacherAssignmentsView from '@/views/teacher/TeacherAssignmentsView.vue'
-import TeacherDashboardView from '@/views/teacher/TeacherDashboardView.vue'
-import TeacherEvaluationsView from '@/views/teacher/TeacherEvaluationsView.vue'
-import TeacherFinalExamsView from '@/views/teacher/TeacherFinalExamsView.vue'
-import TeacherEnrollmentListView from '@/views/teacher/TeacherEnrollmentListView.vue'
-import TeacherGradeEntryView from '@/views/teacher/TeacherGradeEntryView.vue'
-import TeacherProfileView from '@/views/teacher/TeacherProfileView.vue'
-import TeacherStatisticsView from '@/views/teacher/TeacherStatisticsView.vue'
+
+const LoginView = () => import('@/views/login/LoginView.vue')
+
+const AdminDashboardView = () => import('@/views/admin/AdminDashboardView.vue')
+const AssignmentManagementView = () => import('@/views/admin/AssignmentManagementView.vue')
+const ClassroomManagementView = () => import('@/views/admin/ClassroomManagementView.vue')
+const ClassManagementView = () => import('@/views/admin/ClassManagementView.vue')
+const CourseManagementView = () => import('@/views/admin/CourseManagementView.vue')
+const EnrollmentManagementView = () => import('@/views/admin/EnrollmentManagementView.vue')
+const FinalExamManagementView = () => import('@/views/admin/FinalExamManagementView.vue')
+const GradeManagementView = () => import('@/views/admin/GradeManagementView.vue')
+const MajorCourseManagementView = () => import('@/views/admin/MajorCourseManagementView.vue')
+const MajorManagementView = () => import('@/views/admin/MajorManagementView.vue')
+const MajorTransferApplicationManagementView = () =>
+  import('@/views/admin/MajorTransferApplicationManagementView.vue')
+const RegionManagementView = () => import('@/views/admin/RegionManagementView.vue')
+const StatisticsView = () => import('@/views/admin/StatisticsView.vue')
+const StudentManagementView = () => import('@/views/admin/StudentManagementView.vue')
+const TeacherManagementView = () => import('@/views/admin/TeacherManagementView.vue')
+const TeachingBuildingManagementView = () => import('@/views/admin/TeachingBuildingManagementView.vue')
+const TeachingEvaluationManagementView = () => import('@/views/admin/TeachingEvaluationManagementView.vue')
+const UserManagementView = () => import('@/views/admin/UserManagementView.vue')
+
+const AvailableCoursesView = () => import('@/views/student/AvailableCoursesView.vue')
+const MajorTransferApplicationsView = () => import('@/views/student/MajorTransferApplicationsView.vue')
+const MyClassmatesView = () => import('@/views/student/MyClassmatesView.vue')
+const MyCoursesView = () => import('@/views/student/MyCoursesView.vue')
+const MyCreditsView = () => import('@/views/student/MyCreditsView.vue')
+const MyEnrollmentsView = () => import('@/views/student/MyEnrollmentsView.vue')
+const MyGradesView = () => import('@/views/student/MyGradesView.vue')
+const MyRankView = () => import('@/views/student/MyRankView.vue')
+const MyScheduleView = () => import('@/views/student/MyScheduleView.vue')
+const StudentDashboardView = () => import('@/views/student/StudentDashboardView.vue')
+const StudentFinalExamsView = () => import('@/views/student/StudentFinalExamsView.vue')
+const StudentProfileView = () => import('@/views/student/StudentProfileView.vue')
+const TeachingEvaluationsView = () => import('@/views/student/TeachingEvaluationsView.vue')
+
+const TeacherAssignmentsView = () => import('@/views/teacher/TeacherAssignmentsView.vue')
+const TeacherDashboardView = () => import('@/views/teacher/TeacherDashboardView.vue')
+const TeacherEnrollmentListView = () => import('@/views/teacher/TeacherEnrollmentListView.vue')
+const TeacherEvaluationsView = () => import('@/views/teacher/TeacherEvaluationsView.vue')
+const TeacherFinalExamsView = () => import('@/views/teacher/TeacherFinalExamsView.vue')
+const TeacherGradeEntryView = () => import('@/views/teacher/TeacherGradeEntryView.vue')
+const TeacherProfileView = () => import('@/views/teacher/TeacherProfileView.vue')
+const TeacherScheduleView = () => import('@/views/teacher/TeacherScheduleView.vue')
+const TeacherStatisticsView = () => import('@/views/teacher/TeacherStatisticsView.vue')
 
 const router = createRouter({
   history: createWebHistory(),
@@ -163,6 +169,11 @@ const router = createRouter({
           meta: { role: 'TEACHER' }
         },
         {
+          path: 'teacher/schedule',
+          component: TeacherScheduleView,
+          meta: { role: 'TEACHER' }
+        },
+        {
           path: 'teacher/enrollments',
           component: TeacherEnrollmentListView,
           meta: { role: 'TEACHER' }
@@ -263,8 +274,15 @@ const router = createRouter({
   ]
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const auth = useAuthStore()
+  if (auth.isAuthenticated && !auth.profileLoaded) {
+    try {
+      await auth.refreshProfile()
+    } catch {
+      return to.name === 'login' ? true : '/login'
+    }
+  }
   if (to.name === 'login' && auth.isAuthenticated) {
     return roleDashboard(auth.role)
   }

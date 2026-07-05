@@ -17,6 +17,8 @@ public interface StatisticsService {
 
     List<Map<String, Object>> teacherCourseAverages(Long userId);
 
+    Map<String, Object> teacherSchedule(Long userId);
+
     List<Map<String, Object>> studentYearScores(Long studentId, String academicYear);
 
     List<Map<String, Object>> courseRank(Long assignmentId);

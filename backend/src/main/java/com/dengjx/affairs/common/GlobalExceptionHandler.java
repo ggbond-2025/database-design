@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final String INTERNAL_ERROR_MESSAGE = "系统异常，请联系管理员并提供错误追踪编号";
 
     @ExceptionHandler(BusinessException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -75,10 +76,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Throwable.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ApiResponse<ErrorDetail> handleException(Throwable exception, HttpServletRequest request) {
-        String message = hasText(exception.getMessage())
-                ? "系统异常：" + exception.getMessage()
-                : "系统异常，请查看错误详情";
-        return fail("INTERNAL_ERROR", message, exception, request, List.of());
+        return fail("INTERNAL_ERROR", INTERNAL_ERROR_MESSAGE, exception, request, List.of(), true);
     }
 
     private String resolveDataIntegrityMessage(DataIntegrityViolationException exception) {
@@ -127,7 +125,20 @@ public class GlobalExceptionHandler {
             Throwable exception,
             HttpServletRequest request,
             List<String> details) {
+        return fail(code, message, exception, request, details, false);
+    }
+
+    private ApiResponse<ErrorDetail> fail(
+            String code,
+            String message,
+            Throwable exception,
+            HttpServletRequest request,
+            List<String> details,
+            boolean sanitizeErrorDetailMessage) {
         ErrorDetail errorDetail = ErrorDetail.from(code, exception, request, details);
+        if (sanitizeErrorDetailMessage) {
+            errorDetail = errorDetail.withPublicMessage(message);
+        }
         log.error(
                 "Request failed: traceId={} code={} request={} {} message={}",
                 errorDetail.traceId(),

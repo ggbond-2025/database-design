@@ -14,13 +14,18 @@ import com.dengjx.affairs.dto.LoginResponse;
 import com.dengjx.affairs.common.BusinessException;
 import com.dengjx.affairs.security.JwtService;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class AuthServiceImpl implements AuthService {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthServiceImpl.class);
     private static final String BAD_CREDENTIALS_MESSAGE = "用户名或密码错误";
 
     private final JdbcTemplate jdbcTemplate;
@@ -46,10 +51,15 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(BAD_CREDENTIALS_MESSAGE);
         }
 
-        String token = jwtService.generateToken(account.userId(), account.username(), account.role());
+        String token = jwtService.generateToken(
+                account.userId(),
+                account.username(),
+                account.role(),
+                currentTokenVersion(account.userId()));
         return new LoginResponse(token, account.role(), displayName(account));
     }
 
+    @Transactional
     public void changePassword(Long userId, ChangePasswordRequest request) {
         if (!request.newPassword().equals(request.confirmPassword())) {
             throw new BusinessException("两次输入的新密码不一致");
@@ -62,6 +72,7 @@ public class AuthServiceImpl implements AuthService {
                 "UPDATE Dengjx_Users13 SET djx_Password13 = ? WHERE djx_UserId13 = ? AND djx_Enabled13 = TRUE",
                 passwordEncoder.encode(request.newPassword()),
                 userId);
+        incrementTokenVersion(userId);
     }
 
     public CurrentUserProfileResponse currentProfile(Long userId) {
@@ -212,6 +223,35 @@ public class AuthServiceImpl implements AuthService {
         }
         LocalDate localDate = admissionDate.toLocalDate();
         return academicTermService.current(localDate);
+    }
+
+    private int currentTokenVersion(Long userId) {
+        try {
+            Integer tokenVersion = jdbcTemplate.queryForObject(
+                    "SELECT djx_TokenVersion13 FROM Dengjx_Users13 WHERE djx_UserId13 = ?",
+                    Integer.class,
+                    userId);
+            return tokenVersion == null ? 0 : tokenVersion;
+        } catch (DataAccessException exception) {
+            log.warn(
+                    "Token version lookup failed for userId={}, falling back to version 0: {}",
+                    userId,
+                    exception.getMessage());
+            return 0;
+        }
+    }
+
+    private void incrementTokenVersion(Long userId) {
+        try {
+            jdbcTemplate.update(
+                    "UPDATE Dengjx_Users13 SET djx_TokenVersion13 = djx_TokenVersion13 + 1 WHERE djx_UserId13 = ?",
+                    userId);
+        } catch (DataAccessException exception) {
+            log.warn(
+                    "Token version increment failed for userId={}; old tokens may remain valid until schema is updated: {}",
+                    userId,
+                    exception.getMessage());
+        }
     }
 
     private Long nullableLong(ResultSet rs, String column) throws SQLException {

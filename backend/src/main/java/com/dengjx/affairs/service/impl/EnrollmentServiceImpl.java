@@ -20,11 +20,7 @@ import com.dengjx.affairs.security.AuthenticatedUser;
 import com.dengjx.affairs.security.UserContextService;
 import com.dengjx.affairs.service.EnrollmentSettingService;
 import java.sql.Date;
-import java.sql.Time;
 import java.time.LocalDate;
-import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
@@ -224,25 +220,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         List<Map<String, Object>> rows = mine(userId).stream()
                 .filter(row -> ACTIVE_STATUSES.contains(String.valueOf(row.get("djx_status13"))))
                 .toList();
-        Map<Integer, List<Map<String, Object>>> firstHalf = emptyWeekdayMap();
-        Map<Integer, List<Map<String, Object>>> secondHalf = emptyWeekdayMap();
-        for (Map<String, Object> row : rows) {
-            Assignment assignment = assignmentFromRow(row);
-            int hours = numberValue(row.get("djx_hours13")).intValue();
-            for (AssignmentScheduleRules.EffectiveSlot slot : AssignmentScheduleRules.effectiveSlots(assignment, hours)) {
-                Map<String, Object> item = new LinkedHashMap<>(row);
-                item.put("weekday", slot.weekday());
-                item.put("startTime", slot.startTime().toString());
-                item.put("endTime", slot.endTime().toString());
-                if (slot.firstHalf()) {
-                    firstHalf.get(slot.weekday()).add(item);
-                }
-                if (slot.secondHalf()) {
-                    secondHalf.get(slot.weekday()).add(item);
-                }
-            }
-        }
-        return Map.of("firstHalf", firstHalf, "secondHalf", secondHalf);
+        return ScheduleGridBuilder.build(rows);
     }
 
     public List<Map<String, Object>> assignmentStudents(AuthenticatedUser user, Long assignmentId) {
@@ -320,6 +298,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     }
 
     private void ensureCapacity(Assignment assignment) {
+        lockAssignmentForCapacityCheck(assignment.getAssignmentId());
         Long selectedCount = enrollmentMapper.selectCount(Wrappers.<Enrollment>lambdaQuery()
                 .eq(Enrollment::getAssignmentId, assignment.getAssignmentId())
                 .in(Enrollment::getStatus, ACTIVE_STATUSES));
@@ -332,6 +311,18 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         if (enrollmentSettingService != null && !enrollmentSettingService.isEnabled()) {
             throw new BusinessException(ENROLLMENT_CLOSED_MESSAGE);
         }
+    }
+
+    private void lockAssignmentForCapacityCheck(Long assignmentId) {
+        if (jdbcTemplate == null || assignmentId == null) {
+            return;
+        }
+        jdbcTemplate.queryForObject("""
+                SELECT djx_assignmentid13
+                FROM dengjx_teachingassignments13
+                WHERE djx_assignmentid13 = ?
+                FOR UPDATE
+                """, Long.class, assignmentId);
     }
 
     private void autoEnrollRequiredCourses(StudentTermContext context) {
@@ -369,12 +360,51 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                 """, studentId);
         LocalDate admissionDate = toLocalDate(row.get("djx_admissiondate13"));
         AcademicTermService.AcademicTerm term = academicTermService.current(admissionDate);
+        Long classId = effectiveClassId(
+                studentId,
+                ((Number) row.get("djx_classid13")).longValue(),
+                term);
         return new StudentTermContext(
                 ((Number) row.get("djx_studentid13")).longValue(),
-                ((Number) row.get("djx_classid13")).longValue(),
+                classId,
                 term.grade(),
                 term.semester(),
                 term.academicYear());
+    }
+
+    private Long effectiveClassId(Long studentId, Long currentClassId, AcademicTermService.AcademicTerm currentTerm) {
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList("""
+                SELECT djx_fromclassid13 AS fromclassid,
+                       djx_effectiveacademicyear13 AS effectiveacademicyear,
+                       djx_effectivesemester13 AS effectivesemester
+                FROM dengjx_majortransferapplications13
+                WHERE djx_studentid13 = ?
+                  AND djx_status13 = 'APPROVED'
+                  AND djx_fromclassid13 IS NOT NULL
+                  AND djx_effectiveacademicyear13 IS NOT NULL
+                  AND djx_effectivesemester13 IS NOT NULL
+                ORDER BY djx_reviewedat13 DESC
+                LIMIT 1
+                """, studentId);
+        if (rows.isEmpty()) {
+            return currentClassId;
+        }
+        Map<String, Object> transfer = rows.get(0);
+        String effectiveAcademicYear = String.valueOf(transfer.get("effectiveacademicyear"));
+        int effectiveSemester = numberValue(transfer.get("effectivesemester")).intValue();
+        if (isBefore(currentTerm.academicYear(), currentTerm.semester(), effectiveAcademicYear, effectiveSemester)) {
+            return numberValue(transfer.get("fromclassid")).longValue();
+        }
+        return currentClassId;
+    }
+
+    private boolean isBefore(String academicYear, int semester, String effectiveAcademicYear, int effectiveSemester) {
+        int currentStartYear = Integer.parseInt(academicYear.substring(0, 4));
+        int effectiveStartYear = Integer.parseInt(effectiveAcademicYear.substring(0, 4));
+        if (currentStartYear != effectiveStartYear) {
+            return currentStartYear < effectiveStartYear;
+        }
+        return semester < effectiveSemester;
     }
 
     private Map<String, Object> assignmentCourse(Long assignmentId) {
@@ -432,53 +462,12 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                   AND a.djx_semester13 = ?
                 """, context.studentId(), target.getAssignmentId(), context.academicYear(), context.semester());
         for (Map<String, Object> row : rows) {
-            Assignment existing = assignmentFromRow(row);
+            Assignment existing = ScheduleGridBuilder.assignmentFromRow(row);
             int existingHours = numberValue(row.get("djx_hours13")).intValue();
             if (AssignmentScheduleRules.hasConflict(targetSlots, AssignmentScheduleRules.effectiveSlots(existing, existingHours))) {
                 throw new BusinessException("该时间段已有课程，不能重复选课");
             }
         }
-    }
-
-    private Assignment assignmentFromRow(Map<String, Object> row) {
-        Assignment assignment = new Assignment();
-        assignment.setAssignmentId(longValue(row.get("djx_assignmentid13")));
-        assignment.setWeekdayOne(integerValue(row.get("djx_weekdayone13")));
-        assignment.setStartTimeOne(toLocalTime(row.get("djx_starttimeone13")));
-        assignment.setEndTimeOne(toLocalTime(row.get("djx_endtimeone13")));
-        assignment.setWeekdayTwo(integerValue(row.get("djx_weekdaytwo13")));
-        assignment.setStartTimeTwo(toLocalTime(row.get("djx_starttimetwo13")));
-        assignment.setEndTimeTwo(toLocalTime(row.get("djx_endtimetwo13")));
-        return assignment;
-    }
-
-    private Long longValue(Object value) {
-        return value instanceof Number number ? number.longValue() : null;
-    }
-
-    private Integer integerValue(Object value) {
-        return value instanceof Number number ? number.intValue() : null;
-    }
-
-    private LocalTime toLocalTime(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof LocalTime localTime) {
-            return localTime;
-        }
-        if (value instanceof Time time) {
-            return time.toLocalTime();
-        }
-        return LocalTime.parse(String.valueOf(value));
-    }
-
-    private Map<Integer, List<Map<String, Object>>> emptyWeekdayMap() {
-        Map<Integer, List<Map<String, Object>>> result = new LinkedHashMap<>();
-        for (int weekday = 1; weekday <= 5; weekday++) {
-            result.put(weekday, new ArrayList<>());
-        }
-        return result;
     }
 
     private Enrollment createOrRestore(Long studentId, Long assignmentId, String status) {

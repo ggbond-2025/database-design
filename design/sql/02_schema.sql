@@ -22,6 +22,8 @@ DROP TABLE IF EXISTS Dengjx_Enrollments13;
 
 DROP TABLE IF EXISTS Dengjx_MajorTransferApplications13;
 
+DROP TABLE IF EXISTS Dengjx_MajorTransferSettings13;
+
 DROP TABLE IF EXISTS Dengjx_TeachingAssignments13;
 
 DROP TABLE IF EXISTS Dengjx_FinalExams13;
@@ -207,6 +209,16 @@ CREATE TABLE Dengjx_EnrollmentSettings13 (
     djx_UpdatedAt13 TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 转专业申请设置表，保存系统全局转专业申请开关状态。
+CREATE TABLE Dengjx_MajorTransferSettings13 (
+    -- 转专业申请设置主键，固定为1。
+    djx_SettingId13 INTEGER PRIMARY KEY DEFAULT 1 CHECK (djx_SettingId13 = 1),
+    -- 是否启用学生转专业申请功能。
+    djx_Enabled13 BOOLEAN NOT NULL DEFAULT TRUE,
+    -- 转专业申请设置最后更新时间。
+    djx_UpdatedAt13 TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- 教学任务表，保存专业课程计划、班级、教师、学年学期和选课容量配置。
 CREATE TABLE Dengjx_TeachingAssignments13 (
     -- 教学任务主键编号。
@@ -275,6 +287,8 @@ CREATE TABLE Dengjx_MajorTransferApplications13 (
     djx_StudentId13 BIGINT NOT NULL REFERENCES Dengjx_Students13 (djx_StudentId13),
     -- 原专业编号。
     djx_FromMajorId13 BIGINT NOT NULL REFERENCES Dengjx_Majors13 (djx_MajorId13),
+    -- 原班级编号，用于审核通过后当前学期继续按原专业班级修读。
+    djx_FromClassId13 BIGINT NOT NULL REFERENCES Dengjx_Classes13 (djx_ClassId13),
     -- 目标专业编号。
     djx_TargetMajorId13 BIGINT NOT NULL REFERENCES Dengjx_Majors13 (djx_MajorId13),
     -- 审核通过后转入的班级，未通过或待审核时为空。
@@ -287,6 +301,10 @@ CREATE TABLE Dengjx_MajorTransferApplications13 (
     ),
     -- 审核意见。
     djx_ReviewComment13 VARCHAR(500) NULL,
+    -- 审核通过后开始按目标专业生效的学年。
+    djx_EffectiveAcademicYear13 VARCHAR(20) NULL,
+    -- 审核通过后开始按目标专业生效的学期。
+    djx_EffectiveSemester13 INTEGER NULL CHECK (djx_EffectiveSemester13 IN (1, 2)),
     -- 申请提交时间。
     djx_AppliedAt13 TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     -- 审核时间。
@@ -363,6 +381,8 @@ CREATE TABLE Dengjx_Users13 (
     djx_TeacherId13 BIGINT NULL REFERENCES Dengjx_Teachers13 (djx_TeacherId13),
     -- 账号是否启用。
     djx_Enabled13 BOOLEAN NOT NULL DEFAULT TRUE,
+    -- 登录令牌版本号，密码或账号关键字段变更后递增以使旧令牌失效。
+    djx_TokenVersion13 INTEGER NOT NULL DEFAULT 0 CHECK (djx_TokenVersion13 >= 0),
     CONSTRAINT chk_djx_users_role_binding13 CHECK (
         (
             djx_Role13 = 'ADMIN'
@@ -399,6 +419,34 @@ CREATE INDEX idx_djx_assignments_class13 ON Dengjx_TeachingAssignments13 (djx_Cl
 CREATE INDEX idx_djx_assignments_classroom13 ON Dengjx_TeachingAssignments13 (djx_ClassroomId13);
 
 CREATE INDEX idx_djx_enrollments_student13 ON Dengjx_Enrollments13 (djx_StudentId13);
+
+CREATE INDEX idx_djx_assignments_teacher_term13 ON Dengjx_TeachingAssignments13 (
+    djx_TeacherId13,
+    djx_AcademicYear13,
+    djx_Semester13
+);
+
+CREATE INDEX idx_djx_assignments_class_term13 ON Dengjx_TeachingAssignments13 (
+    djx_ClassId13,
+    djx_AcademicYear13,
+    djx_Semester13
+);
+
+CREATE INDEX idx_djx_assignments_classroom_term13 ON Dengjx_TeachingAssignments13 (
+    djx_ClassroomId13,
+    djx_AcademicYear13,
+    djx_Semester13
+);
+
+CREATE INDEX idx_djx_enrollments_assignment_status13 ON Dengjx_Enrollments13 (
+    djx_AssignmentId13,
+    djx_Status13
+);
+
+CREATE INDEX idx_djx_enrollments_student_status13 ON Dengjx_Enrollments13 (
+    djx_StudentId13,
+    djx_Status13
+);
 
 CREATE INDEX idx_djx_majortransfer_student13 ON Dengjx_MajorTransferApplications13 (djx_StudentId13);
 

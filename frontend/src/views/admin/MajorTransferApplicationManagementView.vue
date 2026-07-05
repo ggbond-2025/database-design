@@ -20,6 +20,7 @@ const saving = ref(false)
 const dialogVisible = ref(false)
 const rows = ref<Row[]>([])
 const classes = ref<FieldOption[]>([])
+const transferApplicationEnabled = ref(true)
 const page = ref(1)
 const size = ref(10)
 const total = ref(0)
@@ -50,6 +51,17 @@ async function load() {
   } finally {
     loading.value = false
   }
+}
+
+async function loadSetting() {
+  const setting = await getAdminList<Record<string, unknown>>('/admin/major-transfer-setting')
+  transferApplicationEnabled.value = Boolean(setting.enabled)
+}
+
+async function toggleTransferApplicationSetting(value: string | number | boolean) {
+  await putAdmin('/admin/major-transfer-setting', { enabled: Boolean(value) })
+  ElMessage.success(Boolean(value) ? '已开启学生转专业申请' : '已关闭学生转专业申请')
+  await loadSetting()
 }
 
 async function openReview(row: Row) {
@@ -98,14 +110,29 @@ function statusType(status: unknown) {
   return 'warning'
 }
 
-onMounted(load)
+function effectiveTermLabel(row: Row) {
+  if (!row.effectiveAcademicYear || !row.effectiveSemester) {
+    return '-'
+  }
+  return `${row.effectiveAcademicYear} 第${row.effectiveSemester}学期`
+}
+
+onMounted(async () => {
+  await Promise.all([load(), loadSetting()])
+})
 </script>
 
 <template>
   <PageContainer title="转专业审核" description="审核学生转专业申请；通过时选择目标专业下的转入班级，历史课程记录保留。">
-    <div class="inline-form">
+    <div class="data-toolbar">
       <el-input v-model="keyword" class="toolbar-search" clearable placeholder="学号、姓名或目标专业" />
       <el-button type="primary" @click="load">查询</el-button>
+      <el-switch
+        v-model="transferApplicationEnabled"
+        active-text="学生转专业申请已开启"
+        inactive-text="学生转专业申请已关闭"
+        @change="toggleTransferApplicationSetting"
+      />
     </div>
 
     <el-table v-loading="loading" :data="rows" border class="data-table">
@@ -121,6 +148,9 @@ onMounted(load)
       </el-table-column>
       <el-table-column label="申请时间" min-width="170">
         <template #default="{ row }">{{ formatDateTime(row.appliedAt) }}</template>
+      </el-table-column>
+      <el-table-column label="生效学期" min-width="150">
+        <template #default="{ row }">{{ effectiveTermLabel(row) }}</template>
       </el-table-column>
       <el-table-column prop="reason" label="申请理由" min-width="180" />
       <el-table-column label="操作" width="100" fixed="right">

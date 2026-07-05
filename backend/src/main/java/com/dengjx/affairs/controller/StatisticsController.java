@@ -63,6 +63,12 @@ public class StatisticsController {
         return ApiResponse.ok(statisticsService.teacherCourseAverages(user.userId()));
     }
 
+    @GetMapping("/api/teacher/schedule")
+    public ApiResponse<Map<String, Object>> teacherSchedule(
+            @AuthenticationPrincipal AuthenticatedUser user) {
+        return ApiResponse.ok(statisticsService.teacherSchedule(user.userId()));
+    }
+
     @GetMapping("/api/teacher/statistics/course-rank")
     public ApiResponse<List<Map<String, Object>>> teacherCourseRank(
             @AuthenticationPrincipal AuthenticatedUser user,

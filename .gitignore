@@ -1,3 +1,9 @@
 backend/target/
 frontend/dist/
 frontend/node_modules/
+.idea/
+backend/.idea/
+*.iml
+*.log
+*.local
+*.tmp

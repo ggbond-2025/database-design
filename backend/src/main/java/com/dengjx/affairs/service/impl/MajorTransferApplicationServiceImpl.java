@@ -11,9 +11,12 @@ import com.dengjx.affairs.mapper.MajorTransferApplicationMapper;
 import com.dengjx.affairs.mapper.StudentMapper;
 import com.dengjx.affairs.security.UserContextService;
 import com.dengjx.affairs.service.MajorTransferApplicationService;
+import com.dengjx.affairs.service.MajorTransferSettingService;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,16 +31,31 @@ public class MajorTransferApplicationServiceImpl implements MajorTransferApplica
     private final StudentMapper studentMapper;
     private final UserContextService userContextService;
     private final JdbcTemplate jdbcTemplate;
+    private final AcademicTermService academicTermService;
+    private final MajorTransferSettingService settingService;
+
+    @Autowired
+    public MajorTransferApplicationServiceImpl(
+            MajorTransferApplicationMapper applicationMapper,
+            StudentMapper studentMapper,
+            UserContextService userContextService,
+            JdbcTemplate jdbcTemplate,
+            AcademicTermService academicTermService,
+            MajorTransferSettingService settingService) {
+        this.applicationMapper = applicationMapper;
+        this.studentMapper = studentMapper;
+        this.userContextService = userContextService;
+        this.jdbcTemplate = jdbcTemplate;
+        this.academicTermService = academicTermService;
+        this.settingService = settingService;
+    }
 
     public MajorTransferApplicationServiceImpl(
             MajorTransferApplicationMapper applicationMapper,
             StudentMapper studentMapper,
             UserContextService userContextService,
             JdbcTemplate jdbcTemplate) {
-        this.applicationMapper = applicationMapper;
-        this.studentMapper = studentMapper;
-        this.userContextService = userContextService;
-        this.jdbcTemplate = jdbcTemplate;
+        this(applicationMapper, studentMapper, userContextService, jdbcTemplate, new AcademicTermService(), null);
     }
 
     public PageResult<Map<String, Object>> adminList(String keyword, long page, long size) {
@@ -48,6 +66,8 @@ public class MajorTransferApplicationServiceImpl implements MajorTransferApplica
                        app.djx_status13 AS "status",
                        app.djx_reason13 AS "reason",
                        app.djx_reviewcomment13 AS "reviewComment",
+                       app.djx_effectiveacademicyear13 AS "effectiveAcademicYear",
+                       app.djx_effectivesemester13 AS "effectiveSemester",
                        app.djx_appliedat13 AS "appliedAt",
                        app.djx_reviewedat13 AS "reviewedAt",
                        app.djx_targetmajorid13 AS "targetMajorId",
@@ -88,6 +108,8 @@ public class MajorTransferApplicationServiceImpl implements MajorTransferApplica
                        app.djx_status13 AS "status",
                        app.djx_reason13 AS "reason",
                        app.djx_reviewcomment13 AS "reviewComment",
+                       app.djx_effectiveacademicyear13 AS "effectiveAcademicYear",
+                       app.djx_effectivesemester13 AS "effectiveSemester",
                        app.djx_appliedat13 AS "appliedAt",
                        app.djx_reviewedat13 AS "reviewedAt",
                        fm.djx_majorname13 AS "fromMajorName",
@@ -104,6 +126,7 @@ public class MajorTransferApplicationServiceImpl implements MajorTransferApplica
 
     @Transactional
     public MajorTransferApplication submit(Long userId, MajorTransferSubmitRequest request) {
+        ensureMajorTransferOpen();
         Long studentId = userContextService.getStudentId(userId);
         Map<String, Object> current = currentStudentMajor(studentId);
         Long currentMajorId = longValue(current.get("majorid"));
@@ -119,6 +142,7 @@ public class MajorTransferApplicationServiceImpl implements MajorTransferApplica
         MajorTransferApplication application = new MajorTransferApplication();
         application.setStudentId(studentId);
         application.setFromMajorId(currentMajorId);
+        application.setFromClassId(longValue(current.get("classid")));
         application.setTargetMajorId(request.targetMajorId());
         application.setReason(request.reason());
         application.setStatus("PENDING");
@@ -159,11 +183,18 @@ public class MajorTransferApplicationServiceImpl implements MajorTransferApplica
         if (!application.getTargetMajorId().equals(targetMajorId)) {
             throw new BusinessException("转入班级不属于目标专业");
         }
+        if (application.getFromClassId() == null) {
+            application.setFromClassId(longValue(currentStudentMajor(application.getStudentId()).get("classid")));
+        }
+        AcademicTermService.AcademicTerm currentTerm = currentStudentTerm(application.getStudentId());
+        AcademicTermService.AcademicTerm effectiveTerm = nextTerm(currentTerm);
         Student student = new Student();
         student.setStudentId(application.getStudentId());
         student.setClassId(targetClassId);
         studentMapper.updateById(student);
         application.setTargetClassId(targetClassId);
+        application.setEffectiveAcademicYear(effectiveTerm.academicYear());
+        application.setEffectiveSemester(effectiveTerm.semester());
     }
 
     private Map<String, Object> currentStudentMajor(Long studentId) {
@@ -171,10 +202,54 @@ public class MajorTransferApplicationServiceImpl implements MajorTransferApplica
                 SELECT s.djx_studentid13 AS studentid,
                        s.djx_classid13 AS classid,
                        cl.djx_majorid13 AS majorid
+                       , s.djx_admissiondate13 AS admissiondate
                 FROM dengjx_students13 s
                 JOIN dengjx_classes13 cl ON cl.djx_classid13 = s.djx_classid13
                 WHERE s.djx_studentid13 = ?
                 """, studentId);
+    }
+
+    private AcademicTermService.AcademicTerm currentStudentTerm(Long studentId) {
+        Map<String, Object> current = currentStudentMajor(studentId);
+        return academicTermService.current(toLocalDate(current.get("admissiondate")));
+    }
+
+    private AcademicTermService.AcademicTerm nextTerm(AcademicTermService.AcademicTerm currentTerm) {
+        if (currentTerm.semester() == 1) {
+            return new AcademicTermService.AcademicTerm(
+                    currentTerm.grade(),
+                    2,
+                    currentTerm.academicYear(),
+                    currentTerm.label());
+        }
+        int startYear = Integer.parseInt(currentTerm.academicYear().substring(0, 4)) + 1;
+        return new AcademicTermService.AcademicTerm(
+                currentTerm.grade() + 1,
+                1,
+                startYear + "-" + (startYear + 1),
+                currentTerm.label());
+    }
+
+    private void ensureMajorTransferOpen() {
+        if (settingService != null && !settingService.isEnabled()) {
+            throw new BusinessException("当前转专业申请未开放");
+        }
+    }
+
+    private LocalDate toLocalDate(Object value) {
+        if (value == null) {
+            throw new BusinessException("学生入学时间配置不完整");
+        }
+        if (value instanceof LocalDate localDate) {
+            return localDate;
+        }
+        if (value instanceof java.sql.Date date) {
+            return date.toLocalDate();
+        }
+        if (StringUtils.hasText(String.valueOf(value))) {
+            return LocalDate.parse(String.valueOf(value));
+        }
+        throw new BusinessException("学生入学时间配置不完整");
     }
 
     private Long classMajorId(Long classId) {

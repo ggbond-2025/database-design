@@ -4,9 +4,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.eq;
 
 import com.dengjx.affairs.config.SecurityConfig;
 import com.dengjx.affairs.controller.RegionController;
+import com.dengjx.affairs.entity.UserAccount;
+import com.dengjx.affairs.mapper.UserAccountMapper;
 import com.dengjx.affairs.service.RegionService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,6 +42,9 @@ class SecurityResponseTests {
     @MockBean
     private RegionService regionService;
 
+    @MockBean
+    private UserAccountMapper userAccountMapper;
+
     @Test
     void protectedApiWithoutTokenReturnsUnauthorized() throws Exception {
         mockMvc.perform(get("/api/admin/regions"))
@@ -59,7 +66,9 @@ class SecurityResponseTests {
 
     @Test
     void adminApiWithTeacherTokenReturnsForbidden() throws Exception {
-        String token = jwtService.generateToken(1L, "teacher01", "TEACHER");
+        UserAccount account = userAccount(1L, "teacher01", "TEACHER", true, 0);
+        when(userAccountMapper.selectById(1L)).thenReturn(account);
+        String token = jwtService.generateToken(1L, "teacher01", "TEACHER", 0);
 
         mockMvc.perform(get("/api/admin/regions")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
@@ -85,7 +94,9 @@ class SecurityResponseTests {
 
     @Test
     void adminApiWithTeacherTokenWritesSecurityLog(CapturedOutput output) throws Exception {
-        String token = jwtService.generateToken(1L, "teacher01", "TEACHER");
+        UserAccount account = userAccount(1L, "teacher01", "TEACHER", true, 0);
+        when(userAccountMapper.selectById(1L)).thenReturn(account);
+        String token = jwtService.generateToken(1L, "teacher01", "TEACHER", 0);
 
         mockMvc.perform(get("/api/admin/regions")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
@@ -95,5 +106,27 @@ class SecurityResponseTests {
                 .contains("Security request rejected")
                 .contains("status=403")
                 .contains("GET /api/admin/regions");
+    }
+
+    @Test
+    void protectedApiWithStaleTokenVersionReturnsUnauthorized() throws Exception {
+        UserAccount account = userAccount(1L, "teacher01", "TEACHER", true, 2);
+        when(userAccountMapper.selectById(1L)).thenReturn(account);
+        when(userAccountMapper.selectTokenVersionById(eq(1L))).thenReturn(2);
+        String token = jwtService.generateToken(1L, "teacher01", "TEACHER", 1);
+
+        mockMvc.perform(get("/api/teacher/statistics/course-averages")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isUnauthorized());
+    }
+
+    private UserAccount userAccount(Long id, String username, String role, boolean enabled, int tokenVersion) {
+        UserAccount account = new UserAccount();
+        account.setUserId(id);
+        account.setUsername(username);
+        account.setRole(role);
+        account.setEnabled(enabled);
+        account.setTokenVersion(tokenVersion);
+        return account;
     }
 }

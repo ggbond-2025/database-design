@@ -20,6 +20,9 @@ public class MajorTransferApplication {
     @TableField("djx_frommajorid13")
     private Long fromMajorId;
 
+    @TableField("djx_fromclassid13")
+    private Long fromClassId;
+
     @TableField("djx_targetmajorid13")
     private Long targetMajorId;
 
@@ -34,6 +37,12 @@ public class MajorTransferApplication {
 
     @TableField("djx_reviewcomment13")
     private String reviewComment;
+
+    @TableField("djx_effectiveacademicyear13")
+    private String effectiveAcademicYear;
+
+    @TableField("djx_effectivesemester13")
+    private Integer effectiveSemester;
 
     @TableField("djx_appliedat13")
     private LocalDateTime appliedAt;

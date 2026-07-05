@@ -3,10 +3,12 @@ package com.dengjx.affairs.controller;
 import com.dengjx.affairs.common.ApiResponse;
 import com.dengjx.affairs.common.PageResult;
 import com.dengjx.affairs.dto.MajorTransferReviewRequest;
+import com.dengjx.affairs.dto.MajorTransferSettingRequest;
 import com.dengjx.affairs.dto.MajorTransferSubmitRequest;
 import com.dengjx.affairs.entity.MajorTransferApplication;
 import com.dengjx.affairs.security.AuthenticatedUser;
 import com.dengjx.affairs.service.MajorTransferApplicationService;
+import com.dengjx.affairs.service.MajorTransferSettingService;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
@@ -23,9 +25,23 @@ import org.springframework.web.bind.annotation.RestController;
 public class MajorTransferApplicationController {
 
     private final MajorTransferApplicationService applicationService;
+    private final MajorTransferSettingService settingService;
 
-    public MajorTransferApplicationController(MajorTransferApplicationService applicationService) {
+    public MajorTransferApplicationController(
+            MajorTransferApplicationService applicationService,
+            MajorTransferSettingService settingService) {
         this.applicationService = applicationService;
+        this.settingService = settingService;
+    }
+
+    @GetMapping("/api/admin/major-transfer-setting")
+    public ApiResponse<Map<String, Object>> adminSetting() {
+        return ApiResponse.ok(settingService.current());
+    }
+
+    @PutMapping("/api/admin/major-transfer-setting")
+    public ApiResponse<Map<String, Object>> updateSetting(@Valid @RequestBody MajorTransferSettingRequest request) {
+        return ApiResponse.ok(settingService.update(request));
     }
 
     @GetMapping("/api/admin/major-transfer-applications")
@@ -47,6 +63,11 @@ public class MajorTransferApplicationController {
     @GetMapping("/api/student/major-transfer-applications")
     public ApiResponse<List<Map<String, Object>>> studentMine(@AuthenticationPrincipal AuthenticatedUser user) {
         return ApiResponse.ok(applicationService.studentMine(user.userId()));
+    }
+
+    @GetMapping("/api/student/major-transfer-setting")
+    public ApiResponse<Map<String, Object>> studentSetting() {
+        return ApiResponse.ok(settingService.current());
     }
 
     @PostMapping("/api/student/major-transfer-applications")

@@ -14,10 +14,13 @@ import java.util.Map;
 import com.dengjx.affairs.entity.Assignment;
 import com.dengjx.affairs.mapper.AssignmentMapper;
 import com.dengjx.affairs.common.BusinessException;
+import com.dengjx.affairs.dto.AssignmentRequest;
 import com.dengjx.affairs.mapper.EnrollmentMapper;
 import com.dengjx.affairs.service.EnrollmentService;
 import com.dengjx.affairs.service.EnrollmentSettingService;
+import com.dengjx.affairs.service.AssignmentService;
 import com.dengjx.affairs.service.impl.EnrollmentServiceImpl;
+import com.dengjx.affairs.service.impl.AssignmentServiceImpl;
 import com.dengjx.affairs.mapper.GradeMapper;
 import com.dengjx.affairs.service.GradeService;
 import com.dengjx.affairs.service.impl.GradeServiceImpl;
@@ -33,6 +36,7 @@ import com.dengjx.affairs.service.TeachingEvaluationService;
 import com.dengjx.affairs.service.impl.TeachingEvaluationServiceImpl;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.junit.jupiter.api.Test;
+import java.time.LocalTime;
 
 class BusinessRuleTests {
 
@@ -108,6 +112,26 @@ class BusinessRuleTests {
     }
 
     @Test
+    void availableCoursesUseOriginalClassBeforeApprovedMajorTransferEffectiveTerm() {
+        EnrollmentSettingService enrollmentSettingService = mock(EnrollmentSettingService.class);
+        when(enrollmentSettingService.isEnabled()).thenReturn(true);
+        FakePendingTransferJdbcTemplate jdbcTemplate = new FakePendingTransferJdbcTemplate();
+
+        EnrollmentService service = new EnrollmentServiceImpl(
+                mock(EnrollmentMapper.class),
+                mock(AssignmentMapper.class),
+                mock(GradeMapper.class),
+                new FakeUserContextService(),
+                jdbcTemplate,
+                new com.dengjx.affairs.service.impl.AcademicTermService(),
+                enrollmentSettingService);
+
+        service.available(10L);
+
+        assertThat(jdbcTemplate.availableCourseArgs[0]).isEqualTo(11L);
+    }
+
+    @Test
     void mineDoesNotReturnDroppedEnrollmentRows() {
         FakeStudentTermJdbcTemplate jdbcTemplate = new FakeStudentTermJdbcTemplate();
         EnrollmentService service = new EnrollmentServiceImpl(
@@ -123,6 +147,63 @@ class BusinessRuleTests {
 
         assertThat(jdbcTemplate.lastSql)
                 .contains("e.djx_Status13 IN ('SELECTED', 'COMPLETED')");
+    }
+
+    @Test
+    void enrollmentLocksAssignmentBeforeCapacityCheck() {
+        EnrollmentMapper enrollmentMapper = mock(EnrollmentMapper.class);
+        AssignmentMapper assignmentMapper = mock(AssignmentMapper.class);
+        GradeMapper gradeMapper = mock(GradeMapper.class);
+        LockingEnrollmentJdbcTemplate jdbcTemplate = new LockingEnrollmentJdbcTemplate();
+        EnrollmentSettingService enrollmentSettingService = mock(EnrollmentSettingService.class);
+        Assignment assignment = new Assignment();
+        assignment.setAssignmentId(3L);
+        assignment.setClassId(1L);
+        assignment.setAcademicYear("2025-2026");
+        assignment.setSemester(2);
+        assignment.setCapacity(30);
+        assignment.setEnrollmentOpen(true);
+
+        when(enrollmentSettingService.isEnabled()).thenReturn(true);
+        when(assignmentMapper.selectById(3L)).thenReturn(assignment);
+        when(enrollmentMapper.selectCount(any())).thenReturn(0L);
+
+        EnrollmentService service = new EnrollmentServiceImpl(
+                enrollmentMapper,
+                assignmentMapper,
+                gradeMapper,
+                new FakeUserContextService(),
+                jdbcTemplate,
+                new FixedAcademicTermService(),
+                enrollmentSettingService);
+
+        service.enroll(10L, 3L);
+
+        assertThat(jdbcTemplate.lockedAssignmentId).isEqualTo(3L);
+    }
+
+    @Test
+    void assignmentRejectsClassScheduleConflict() {
+        AssignmentMapper assignmentMapper = mock(AssignmentMapper.class);
+        Assignment existing = assignment(9L, 20L, 7L, 30L, LocalTime.of(8, 0), LocalTime.of(9, 40));
+        when(assignmentMapper.selectList(any())).thenReturn(List.of(), List.of(existing));
+        AssignmentService service = new AssignmentServiceImpl(assignmentMapper, new CourseHoursJdbcTemplate(32));
+
+        assertThatThrownBy(() -> service.create(assignmentRequest(1L, 7L, 31L, LocalTime.of(8, 30), LocalTime.of(10, 0))))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("班级");
+    }
+
+    @Test
+    void assignmentRejectsClassroomScheduleConflict() {
+        AssignmentMapper assignmentMapper = mock(AssignmentMapper.class);
+        Assignment existing = assignment(9L, 20L, 7L, 30L, LocalTime.of(8, 0), LocalTime.of(9, 40));
+        when(assignmentMapper.selectList(any())).thenReturn(List.of(), List.of(existing));
+        AssignmentService service = new AssignmentServiceImpl(assignmentMapper, new CourseHoursJdbcTemplate(32));
+
+        assertThatThrownBy(() -> service.create(assignmentRequest(1L, 8L, 30L, LocalTime.of(8, 30), LocalTime.of(10, 0))))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("教室");
     }
 
     @Test
@@ -248,8 +329,93 @@ class BusinessRuleTests {
 
         @Override
         public Map<String, Object> queryForMap(String sql, Object... args) {
-            return Map.of("djx_coursetype13", "ELECTIVE", "djx_targetgrade13", 1, "djx_targetsemester13", 1, "djx_hours13", 32);
+            return Map.of("djx_coursetype13", "ELECTIVE", "djx_targetgrade13", 1, "djx_targetsemester13", 2, "djx_hours13", 32);
         }
+    }
+
+    private static class LockingEnrollmentJdbcTemplate extends JdbcTemplate {
+
+        private Long lockedAssignmentId;
+
+        @Override
+        public <T> T queryForObject(String sql, Class<T> requiredType, Object... args) {
+            if (sql.contains("FOR UPDATE")) {
+                lockedAssignmentId = ((Number) args[0]).longValue();
+                return requiredType.cast(lockedAssignmentId);
+            }
+            return requiredType.cast(32);
+        }
+
+        @Override
+        public Map<String, Object> queryForMap(String sql, Object... args) {
+            if (sql.contains("FROM dengjx_students13")) {
+                return Map.of(
+                        "djx_studentid13", 1L,
+                        "djx_classid13", 1L,
+                        "djx_admissiondate13", LocalDate.of(2025, 9, 1));
+            }
+            return Map.of("djx_coursetype13", "ELECTIVE", "djx_targetgrade13", 1, "djx_targetsemester13", 2, "djx_hours13", 32);
+        }
+
+        @Override
+        public List<Map<String, Object>> queryForList(String sql, Object... args) {
+            return List.of();
+        }
+    }
+
+    private static class CourseHoursJdbcTemplate extends JdbcTemplate {
+
+        private final Integer hours;
+
+        CourseHoursJdbcTemplate(Integer hours) {
+            this.hours = hours;
+        }
+
+        @Override
+        public <T> T queryForObject(String sql, Class<T> requiredType, Object... args) {
+            return requiredType.cast(hours);
+        }
+    }
+
+    private static class FixedAcademicTermService extends com.dengjx.affairs.service.impl.AcademicTermService {
+
+        @Override
+        public AcademicTerm current(LocalDate admissionDate) {
+            return new AcademicTerm(1, 2, "2025-2026", "大一下学期");
+        }
+    }
+
+    private Assignment assignment(Long id, Long teacherId, Long classId, Long classroomId, LocalTime start, LocalTime end) {
+        Assignment assignment = new Assignment();
+        assignment.setAssignmentId(id);
+        assignment.setMajorCourseId(1L);
+        assignment.setTeacherId(teacherId);
+        assignment.setClassId(classId);
+        assignment.setClassroomId(classroomId);
+        assignment.setAcademicYear("2025-2026");
+        assignment.setSemester(1);
+        assignment.setWeekdayOne(1);
+        assignment.setStartTimeOne(start);
+        assignment.setEndTimeOne(end);
+        return assignment;
+    }
+
+    private AssignmentRequest assignmentRequest(Long teacherId, Long classId, Long classroomId, LocalTime start, LocalTime end) {
+        return new AssignmentRequest(
+                1L,
+                classId,
+                teacherId,
+                classroomId,
+                "2025-2026",
+                1,
+                30,
+                true,
+                1,
+                start,
+                end,
+                null,
+                null,
+                null);
     }
 
     private static class FakeStudentTermJdbcTemplate extends JdbcTemplate {
@@ -267,6 +433,33 @@ class BusinessRuleTests {
         @Override
         public List<Map<String, Object>> queryForList(String sql, Object... args) {
             lastSql = sql;
+            return List.of();
+        }
+    }
+
+    private static class FakePendingTransferJdbcTemplate extends JdbcTemplate {
+
+        private Object[] availableCourseArgs = new Object[0];
+
+        @Override
+        public Map<String, Object> queryForMap(String sql, Object... args) {
+            return Map.of(
+                    "djx_studentid13", 1L,
+                    "djx_classid13", 22L,
+                    "djx_admissiondate13", LocalDate.of(2025, 9, 1));
+        }
+
+        @Override
+        public List<Map<String, Object>> queryForList(String sql, Object... args) {
+            if (sql.contains("FROM dengjx_majortransferapplications13")) {
+                return List.of(Map.of(
+                        "fromclassid", 11L,
+                        "effectiveacademicyear", "2026-2027",
+                        "effectivesemester", 1));
+            }
+            if (sql.contains("mc.djx_CourseType13 = 'ELECTIVE'")) {
+                availableCourseArgs = args;
+            }
             return List.of();
         }
     }

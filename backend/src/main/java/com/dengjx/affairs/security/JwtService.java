@@ -30,11 +30,16 @@ public class JwtService {
     }
 
     public String generateToken(Long userId, String username, String role) {
+        return generateToken(userId, username, role, 0);
+    }
+
+    public String generateToken(Long userId, String username, String role, int tokenVersion) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .subject(username)
                 .claim("userId", userId)
                 .claim("role", role)
+                .claim("tokenVersion", tokenVersion)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plus(expirationMinutes, ChronoUnit.MINUTES)))
                 .signWith(signingKey)
@@ -59,6 +64,14 @@ public class JwtService {
 
     public String getRole(String token) {
         return String.valueOf(parseToken(token).get("role"));
+    }
+
+    public int getTokenVersion(String token) {
+        Object value = parseToken(token).get("tokenVersion");
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        return value == null ? 0 : Integer.parseInt(String.valueOf(value));
     }
 
     public boolean isValid(String token) {

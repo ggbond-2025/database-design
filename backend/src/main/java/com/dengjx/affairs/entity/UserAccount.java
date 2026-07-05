@@ -30,4 +30,7 @@ public class UserAccount {
 
     @TableField("djx_enabled13")
     private Boolean enabled;
+
+    @TableField(value = "djx_tokenversion13", select = false)
+    private Integer tokenVersion;
 }

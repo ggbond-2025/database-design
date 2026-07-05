@@ -75,6 +75,40 @@ public class StatisticsServiceImpl implements StatisticsService {
         return jdbcTemplate.queryForList(sql, teacherId);
     }
 
+    public Map<String, Object> teacherSchedule(Long userId) {
+        Long teacherId = userContextService.getTeacherId(userId);
+        String sql = """
+                SELECT a.djx_AssignmentId13,
+                       c.djx_CourseCode13,
+                       c.djx_CourseName13,
+                       c.djx_Hours13,
+                       mc.djx_CourseType13,
+                       cl.djx_ClassName13,
+                       t.djx_Tname13,
+                       tb.djx_BuildingName13,
+                       cr.djx_ClassroomName13,
+                       tb.djx_BuildingName13 || ' ' || cr.djx_ClassroomName13 AS djx_ClassroomLabel13,
+                       a.djx_AcademicYear13,
+                       a.djx_Semester13,
+                       a.djx_WeekdayOne13,
+                       a.djx_StartTimeOne13,
+                       a.djx_EndTimeOne13,
+                       a.djx_WeekdayTwo13,
+                       a.djx_StartTimeTwo13,
+                       a.djx_EndTimeTwo13
+                FROM Dengjx_TeachingAssignments13 a
+                JOIN Dengjx_MajorCourses13 mc ON mc.djx_MajorCourseId13 = a.djx_MajorCourseId13
+                JOIN Dengjx_Courses13 c ON c.djx_CourseId13 = mc.djx_CourseId13
+                JOIN Dengjx_Classes13 cl ON cl.djx_ClassId13 = a.djx_ClassId13
+                JOIN Dengjx_Teachers13 t ON t.djx_TeacherId13 = a.djx_TeacherId13
+                JOIN Dengjx_Classrooms13 cr ON cr.djx_ClassroomId13 = a.djx_ClassroomId13
+                JOIN Dengjx_TeachingBuildings13 tb ON tb.djx_BuildingId13 = cr.djx_BuildingId13
+                WHERE a.djx_TeacherId13 = ?
+                ORDER BY a.djx_AcademicYear13, a.djx_Semester13, a.djx_WeekdayOne13, a.djx_StartTimeOne13
+                """;
+        return ScheduleGridBuilder.build(jdbcTemplate.queryForList(sql, teacherId));
+    }
+
     public List<Map<String, Object>> studentYearScores(Long studentId, String academicYear) {
         return callRefCursor("{ call Dengjx_GetStudentYearScores13(?, ?, ?) }", 3, statement -> {
             statement.setLong(1, studentId);

@@ -1,7 +1,9 @@
 package com.dengjx.affairs;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 
@@ -10,6 +12,7 @@ import com.dengjx.affairs.service.AssignmentService;
 import com.dengjx.affairs.service.impl.AssignmentServiceImpl;
 import com.dengjx.affairs.dto.AssignmentRequest;
 import com.dengjx.affairs.common.BusinessException;
+import com.dengjx.affairs.entity.Assignment;
 import com.dengjx.affairs.mapper.CourseMapper;
 import com.dengjx.affairs.service.CourseService;
 import com.dengjx.affairs.service.impl.CourseServiceImpl;
@@ -32,6 +35,7 @@ import com.dengjx.affairs.service.impl.TeacherServiceImpl;
 import com.dengjx.affairs.dto.TeacherRequest;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -157,6 +161,42 @@ class AcademicValidationTests {
         assertThatThrownBy(() -> service.create(request))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("48学时课程需要配置第二个上课时间");
+    }
+
+    @Test
+    void teacherCannotHaveOverlappingAssignmentsInSameTerm() {
+        AssignmentMapper mapper = mock(AssignmentMapper.class);
+        Assignment existing = new Assignment();
+        existing.setAssignmentId(9L);
+        existing.setMajorCourseId(2L);
+        existing.setTeacherId(1L);
+        existing.setAcademicYear("2023-2024");
+        existing.setSemester(1);
+        existing.setWeekdayOne(1);
+        existing.setStartTimeOne(LocalTime.of(8, 0));
+        existing.setEndTimeOne(LocalTime.of(9, 40));
+        when(mapper.selectList(any())).thenReturn(List.of(existing));
+
+        AssignmentService service = new AssignmentServiceImpl(mapper, new FixedHoursJdbcTemplate(32));
+        AssignmentRequest request = new AssignmentRequest(
+                1L,
+                1L,
+                1L,
+                1L,
+                "2023-2024",
+                1,
+                30,
+                true,
+                1,
+                LocalTime.of(9, 0),
+                LocalTime.of(10, 40),
+                null,
+                null,
+                null);
+
+        assertThatThrownBy(() -> service.create(request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("教师任课时间冲突");
     }
 
     private static class FixedHoursJdbcTemplate extends JdbcTemplate {

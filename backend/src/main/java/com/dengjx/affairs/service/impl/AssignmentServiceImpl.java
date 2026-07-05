@@ -9,6 +9,7 @@ import com.dengjx.affairs.dto.AssignmentRequest;
 import com.dengjx.affairs.common.BusinessException;
 import com.dengjx.affairs.common.PageResult;
 import java.time.LocalTime;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -49,7 +50,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     public Assignment create(AssignmentRequest request) {
-        validate(request);
+        validate(request, null);
         Assignment assignment = new Assignment();
         apply(request, assignment);
         assignmentMapper.insert(assignment);
@@ -57,7 +58,7 @@ public class AssignmentServiceImpl implements AssignmentService {
     }
 
     public Assignment update(Long id, AssignmentRequest request) {
-        validate(request);
+        validate(request, id);
         Assignment assignment = getById(id);
         apply(request, assignment);
         assignmentMapper.updateById(assignment);
@@ -70,7 +71,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         }
     }
 
-    private void validate(AssignmentRequest request) {
+    private void validate(AssignmentRequest request, Long excludeAssignmentId) {
         if (request.semester() == null || (request.semester() != 1 && request.semester() != 2)) {
             throw new BusinessException("学期必须为1或2");
         }
@@ -86,6 +87,47 @@ public class AssignmentServiceImpl implements AssignmentService {
             }
             if (hours == 32 && !hasSlot(request.weekdayOne(), request.startTimeOne(), request.endTimeOne())) {
                 throw new BusinessException("32学时课程需要配置第一个上课时间");
+            }
+            validateScheduleConflict(request, excludeAssignmentId, hours, ScheduleResource.TEACHER);
+            validateScheduleConflict(request, excludeAssignmentId, hours, ScheduleResource.CLASS);
+            validateScheduleConflict(request, excludeAssignmentId, hours, ScheduleResource.CLASSROOM);
+        }
+    }
+
+    private void validateScheduleConflict(
+            AssignmentRequest request,
+            Long excludeAssignmentId,
+            int hours,
+            ScheduleResource resource) {
+        Assignment candidate = new Assignment();
+        apply(request, candidate);
+        List<AssignmentScheduleRules.EffectiveSlot> candidateSlots =
+                AssignmentScheduleRules.effectiveSlots(candidate, hours);
+        if (candidateSlots.isEmpty()) {
+            return;
+        }
+
+        LambdaQueryWrapper<Assignment> wrapper = new LambdaQueryWrapper<Assignment>()
+                .eq(Assignment::getAcademicYear, request.academicYear())
+                .eq(Assignment::getSemester, request.semester());
+        resource.apply(wrapper, request);
+        if (excludeAssignmentId != null) {
+            wrapper.ne(Assignment::getAssignmentId, excludeAssignmentId);
+        }
+
+        List<Assignment> existingAssignments = assignmentMapper.selectList(wrapper);
+        for (Assignment existing : existingAssignments) {
+            if (!resource.matches(existing, request)) {
+                continue;
+            }
+            Integer existingHours = courseHours(existing.getMajorCourseId());
+            if (existingHours == null) {
+                continue;
+            }
+            if (AssignmentScheduleRules.hasConflict(
+                    candidateSlots,
+                    AssignmentScheduleRules.effectiveSlots(existing, existingHours))) {
+                throw new BusinessException(resource.conflictMessage);
             }
         }
     }
@@ -137,5 +179,51 @@ public class AssignmentServiceImpl implements AssignmentService {
                 JOIN dengjx_courses13 c ON c.djx_courseid13 = mc.djx_courseid13
                 WHERE mc.djx_majorcourseid13 = ?
                 """, Integer.class, majorCourseId);
+    }
+
+    private enum ScheduleResource {
+        TEACHER("教师任课时间冲突：同一学期内该教师已有重叠课程") {
+            @Override
+            void apply(LambdaQueryWrapper<Assignment> wrapper, AssignmentRequest request) {
+                wrapper.eq(Assignment::getTeacherId, request.teacherId());
+            }
+
+            @Override
+            boolean matches(Assignment assignment, AssignmentRequest request) {
+                return request.teacherId().equals(assignment.getTeacherId());
+            }
+        },
+        CLASS("班级上课时间冲突：同一学期内该班级已有重叠课程") {
+            @Override
+            void apply(LambdaQueryWrapper<Assignment> wrapper, AssignmentRequest request) {
+                wrapper.eq(Assignment::getClassId, request.classId());
+            }
+
+            @Override
+            boolean matches(Assignment assignment, AssignmentRequest request) {
+                return request.classId().equals(assignment.getClassId());
+            }
+        },
+        CLASSROOM("教室使用时间冲突：同一学期内该教室已有重叠课程") {
+            @Override
+            void apply(LambdaQueryWrapper<Assignment> wrapper, AssignmentRequest request) {
+                wrapper.eq(Assignment::getClassroomId, request.classroomId());
+            }
+
+            @Override
+            boolean matches(Assignment assignment, AssignmentRequest request) {
+                return request.classroomId().equals(assignment.getClassroomId());
+            }
+        };
+
+        private final String conflictMessage;
+
+        ScheduleResource(String conflictMessage) {
+            this.conflictMessage = conflictMessage;
+        }
+
+        abstract void apply(LambdaQueryWrapper<Assignment> wrapper, AssignmentRequest request);
+
+        abstract boolean matches(Assignment assignment, AssignmentRequest request);
     }
 }

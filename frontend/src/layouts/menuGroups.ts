@@ -87,6 +87,7 @@ const teacherMenuGroups: MenuGroup[] = [
     icon: Notebook,
     items: [
       { index: '/teacher/assignments', label: '我的任课', icon: Notebook },
+      { index: '/teacher/schedule', label: '我的课表', icon: Calendar },
       { index: '/teacher/enrollments', label: '选课名单', icon: UserFilled },
       { index: '/teacher/grades', label: '成绩录入', icon: DataAnalysis },
       { index: '/teacher/evaluations', label: '教学评价', icon: DataAnalysis },
@@ -118,7 +119,6 @@ const studentMenuGroups: MenuGroup[] = [
     items: [
       { index: '/student/available-courses', label: '可选课程', icon: Tickets },
       { index: '/student/enrollments', label: '我的选课', icon: Reading },
-      { index: '/student/courses', label: '我的课程', icon: Notebook },
       { index: '/student/schedule', label: '我的课表', icon: Calendar },
       { index: '/student/evaluations', label: '教学评价', icon: DataAnalysis },
       { index: '/student/final-exams', label: '期末考试', icon: Calendar }

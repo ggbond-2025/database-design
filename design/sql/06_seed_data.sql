@@ -8,6 +8,8 @@ DELETE FROM Dengjx_Enrollments13;
 
 DELETE FROM Dengjx_MajorTransferApplications13;
 
+DELETE FROM Dengjx_MajorTransferSettings13;
+
 DELETE FROM Dengjx_TeachingAssignments13;
 
 DELETE FROM Dengjx_FinalExams13;
@@ -56,6 +58,13 @@ VALUES ('软件工程', 160.00),
 
 INSERT INTO
     Dengjx_EnrollmentSettings13 (
+        djx_SettingId13,
+        djx_Enabled13
+    )
+VALUES (1, TRUE);
+
+INSERT INTO
+    Dengjx_MajorTransferSettings13 (
         djx_SettingId13,
         djx_Enabled13
     )
@@ -440,133 +449,78 @@ SELECT
     2,
     v.capacity,
     v.enrollment_open,
-    CASE v.course_code
-        WHEN 'CS101' THEN 1
-        WHEN 'CS102' THEN 1
-        WHEN 'CS103' THEN 2
-        WHEN 'CS106' THEN 2
-        WHEN 'CS107' THEN 5
-        WHEN 'CS112' THEN 2
-        WHEN 'CS113' THEN 3
-        WHEN 'CS114' THEN 1
-        WHEN 'CS116' THEN 2
-        WHEN 'CS104' THEN 1
-        WHEN 'CS110' THEN 2
-        WHEN 'CS108' THEN 5
-        WHEN 'CS111' THEN 5
-        WHEN 'CS105' THEN 1
-        WHEN 'CS109' THEN 2
-    END,
-    CASE v.course_code
-        WHEN 'CS101' THEN TIME '15:25:00'
-        WHEN 'CS102' THEN TIME '08:00:00'
-        WHEN 'CS103' THEN TIME '08:00:00'
-        WHEN 'CS106' THEN TIME '09:55:00'
-        WHEN 'CS107' THEN TIME '13:30:00'
-        WHEN 'CS112' THEN TIME '18:30:00'
-        WHEN 'CS113' THEN TIME '18:30:00'
-        WHEN 'CS114' THEN TIME '18:30:00'
-        WHEN 'CS116' THEN TIME '18:30:00'
-        WHEN 'CS104' THEN TIME '09:55:00'
-        WHEN 'CS110' THEN TIME '13:30:00'
-        WHEN 'CS108' THEN TIME '08:00:00'
-        WHEN 'CS111' THEN TIME '09:55:00'
-        WHEN 'CS105' THEN TIME '13:30:00'
-        WHEN 'CS109' THEN TIME '15:25:00'
-    END,
-    CASE v.course_code
-        WHEN 'CS101' THEN TIME '17:05:00'
-        WHEN 'CS102' THEN TIME '09:40:00'
-        WHEN 'CS103' THEN TIME '09:40:00'
-        WHEN 'CS106' THEN TIME '11:35:00'
-        WHEN 'CS107' THEN TIME '15:10:00'
-        WHEN 'CS112' THEN TIME '20:10:00'
-        WHEN 'CS113' THEN TIME '20:10:00'
-        WHEN 'CS114' THEN TIME '20:10:00'
-        WHEN 'CS116' THEN TIME '20:10:00'
-        WHEN 'CS104' THEN TIME '11:35:00'
-        WHEN 'CS110' THEN TIME '15:10:00'
-        WHEN 'CS108' THEN TIME '09:40:00'
-        WHEN 'CS111' THEN TIME '11:35:00'
-        WHEN 'CS105' THEN TIME '15:10:00'
-        WHEN 'CS109' THEN TIME '17:05:00'
-    END,
-    CASE
-        WHEN c.djx_Hours13 = 32 THEN NULL
-        WHEN v.course_code = 'CS101' THEN 4
-        WHEN v.course_code IN ('CS102', 'CS104', 'CS105') THEN 3
-        WHEN v.course_code = 'CS103' THEN 3
-        WHEN v.course_code IN ('CS106', 'CS110', 'CS109') THEN 4
-        WHEN v.course_code = 'CS107' THEN 3
-        WHEN v.course_code = 'CS112' THEN 5
-        WHEN v.course_code = 'CS113' THEN 5
-        WHEN v.course_code = 'CS114' THEN 4
-        WHEN v.course_code = 'CS116' THEN 5
-    END,
-    CASE
-        WHEN c.djx_Hours13 = 32 THEN NULL
-        WHEN v.course_code = 'CS101' THEN TIME '08:00:00'
-        WHEN v.course_code IN ('CS102', 'CS104') THEN TIME '08:00:00'
-        WHEN v.course_code = 'CS105' THEN TIME '13:30:00'
-        WHEN v.course_code = 'CS103' THEN TIME '09:55:00'
-        WHEN v.course_code = 'CS106' THEN TIME '09:55:00'
-        WHEN v.course_code = 'CS110' THEN TIME '13:30:00'
-        WHEN v.course_code = 'CS109' THEN TIME '18:30:00'
-        WHEN v.course_code = 'CS107' THEN TIME '15:25:00'
-        WHEN v.course_code = 'CS112' THEN TIME '15:25:00'
-        WHEN v.course_code = 'CS113' THEN TIME '18:30:00'
-        WHEN v.course_code = 'CS114' THEN TIME '15:25:00'
-        WHEN v.course_code = 'CS116' THEN TIME '15:25:00'
-    END,
-    CASE
-        WHEN c.djx_Hours13 = 32 THEN NULL
-        WHEN v.course_code = 'CS101' THEN TIME '09:40:00'
-        WHEN v.course_code IN ('CS102', 'CS104') THEN TIME '09:40:00'
-        WHEN v.course_code = 'CS105' THEN TIME '15:10:00'
-        WHEN v.course_code = 'CS103' THEN TIME '11:35:00'
-        WHEN v.course_code = 'CS106' THEN TIME '11:35:00'
-        WHEN v.course_code = 'CS110' THEN TIME '15:10:00'
-        WHEN v.course_code = 'CS109' THEN TIME '20:10:00'
-        WHEN v.course_code = 'CS107' THEN TIME '17:05:00'
-        WHEN v.course_code = 'CS112' THEN TIME '17:05:00'
-        WHEN v.course_code = 'CS113' THEN TIME '20:10:00'
-        WHEN v.course_code = 'CS114' THEN TIME '17:05:00'
-        WHEN v.course_code = 'CS116' THEN TIME '17:05:00'
-    END
+    v.weekday_one,
+    v.start_time_one,
+    v.end_time_one,
+    v.weekday_two,
+    v.start_time_two,
+    v.end_time_two
 FROM (
-        VALUES ('软件工程', 'CS102', 'T2023002', 60, FALSE),
-            ('软件工程', 'CS101', 'T2023001', 60, FALSE),
-            ('软件工程', 'CS103', 'T2023003', 60, FALSE),
-            ('软件工程', 'CS106', 'T2023006', 60, FALSE),
-            ('软件工程', 'CS107', 'T2023003', 40, TRUE),
-            ('软件工程', 'CS112', 'T2023005', 40, TRUE),
-            ('软件工程', 'CS111', 'T2023007', 40, TRUE),
-            ('软件工程', 'CS114', 'T2023006', 40, TRUE),
-            ('计算机科学与技术', 'CS101', 'T2023001', 60, FALSE),
-            ('计算机科学与技术', 'CS103', 'T2023003', 60, FALSE),
-            ('计算机科学与技术', 'CS104', 'T2023004', 60, FALSE),
-            ('计算机科学与技术', 'CS110', 'T2023008', 60, FALSE),
-            ('计算机科学与技术', 'CS108', 'T2023004', 40, TRUE),
-            ('计算机科学与技术', 'CS111', 'T2023007', 40, TRUE),
-            ('计算机科学与技术', 'CS113', 'T2023008', 40, TRUE),
-            ('计算机科学与技术', 'CS116', 'T2023007', 40, TRUE),
-            ('数据科学与大数据技术', 'CS101', 'T2023001', 60, FALSE),
-            ('数据科学与大数据技术', 'CS103', 'T2023003', 60, FALSE),
-            ('数据科学与大数据技术', 'CS105', 'T2023005', 60, FALSE),
-            ('数据科学与大数据技术', 'CS106', 'T2023002', 60, FALSE),
-            ('数据科学与大数据技术', 'CS108', 'T2023004', 40, TRUE),
-            ('数据科学与大数据技术', 'CS109', 'T2023006', 40, TRUE),
-            ('数据科学与大数据技术', 'CS113', 'T2023008', 40, TRUE),
-            ('数据科学与大数据技术', 'CS116', 'T2023007', 40, TRUE)
+        VALUES ('软件工程2501', '软件工程', 'CS102', 'T2023001', 60, FALSE, 1, TIME '08:00:00', TIME '09:40:00', 3, TIME '08:00:00', TIME '09:40:00'),
+            ('软件工程2501', '软件工程', 'CS101', 'T2023002', 60, FALSE, 1, TIME '15:25:00', TIME '17:05:00', 4, TIME '08:00:00', TIME '09:40:00'),
+            ('软件工程2501', '软件工程', 'CS103', 'T2023003', 60, FALSE, 2, TIME '08:00:00', TIME '09:40:00', 3, TIME '09:55:00', TIME '11:35:00'),
+            ('软件工程2501', '软件工程', 'CS106', 'T2023004', 60, FALSE, 2, TIME '09:55:00', TIME '11:35:00', 4, TIME '09:55:00', TIME '11:35:00'),
+            ('软件工程2501', '软件工程', 'CS107', 'T2023005', 40, TRUE, 5, TIME '13:30:00', TIME '15:10:00', 3, TIME '15:25:00', TIME '17:05:00'),
+            ('软件工程2501', '软件工程', 'CS112', 'T2023006', 40, TRUE, 2, TIME '18:30:00', TIME '20:10:00', 5, TIME '15:25:00', TIME '17:05:00'),
+            ('软件工程2501', '软件工程', 'CS111', 'T2023007', 40, TRUE, 5, TIME '09:55:00', TIME '11:35:00', NULL, NULL, NULL),
+            ('软件工程2501', '软件工程', 'CS114', 'T2023008', 40, TRUE, 1, TIME '18:30:00', TIME '20:10:00', 4, TIME '15:25:00', TIME '17:05:00'),
+            ('软件工程2502', '软件工程', 'CS102', 'T2023003', 60, FALSE, 1, TIME '08:00:00', TIME '09:40:00', 3, TIME '08:00:00', TIME '09:40:00'),
+            ('软件工程2502', '软件工程', 'CS101', 'T2023004', 60, FALSE, 1, TIME '15:25:00', TIME '17:05:00', 4, TIME '08:00:00', TIME '09:40:00'),
+            ('软件工程2502', '软件工程', 'CS103', 'T2023005', 60, FALSE, 2, TIME '08:00:00', TIME '09:40:00', 3, TIME '09:55:00', TIME '11:35:00'),
+            ('软件工程2502', '软件工程', 'CS106', 'T2023006', 60, FALSE, 2, TIME '09:55:00', TIME '11:35:00', 4, TIME '09:55:00', TIME '11:35:00'),
+            ('软件工程2502', '软件工程', 'CS107', 'T2023007', 40, TRUE, 5, TIME '13:30:00', TIME '15:10:00', 3, TIME '15:25:00', TIME '17:05:00'),
+            ('软件工程2502', '软件工程', 'CS112', 'T2023008', 40, TRUE, 2, TIME '18:30:00', TIME '20:10:00', 5, TIME '15:25:00', TIME '17:05:00'),
+            ('软件工程2502', '软件工程', 'CS111', 'T2023001', 40, TRUE, 5, TIME '09:55:00', TIME '11:35:00', NULL, NULL, NULL),
+            ('软件工程2502', '软件工程', 'CS114', 'T2023002', 40, TRUE, 1, TIME '18:30:00', TIME '20:10:00', 4, TIME '15:25:00', TIME '17:05:00'),
+            ('计科2501', '计算机科学与技术', 'CS101', 'T2023003', 60, FALSE, 1, TIME '15:25:00', TIME '17:05:00', 4, TIME '08:00:00', TIME '09:40:00'),
+            ('计科2501', '计算机科学与技术', 'CS103', 'T2023004', 60, FALSE, 2, TIME '08:00:00', TIME '09:40:00', 3, TIME '09:55:00', TIME '11:35:00'),
+            ('计科2501', '计算机科学与技术', 'CS104', 'T2023005', 60, FALSE, 1, TIME '09:55:00', TIME '11:35:00', 3, TIME '08:00:00', TIME '09:40:00'),
+            ('计科2501', '计算机科学与技术', 'CS110', 'T2023006', 60, FALSE, 2, TIME '13:30:00', TIME '15:10:00', 4, TIME '13:30:00', TIME '15:10:00'),
+            ('计科2501', '计算机科学与技术', 'CS108', 'T2023007', 40, TRUE, 5, TIME '08:00:00', TIME '09:40:00', NULL, NULL, NULL),
+            ('计科2501', '计算机科学与技术', 'CS111', 'T2023008', 40, TRUE, 5, TIME '09:55:00', TIME '11:35:00', NULL, NULL, NULL),
+            ('计科2501', '计算机科学与技术', 'CS113', 'T2023001', 40, TRUE, 3, TIME '18:30:00', TIME '20:10:00', 5, TIME '18:30:00', TIME '20:10:00'),
+            ('计科2501', '计算机科学与技术', 'CS116', 'T2023002', 40, TRUE, 2, TIME '18:30:00', TIME '20:10:00', 5, TIME '15:25:00', TIME '17:05:00'),
+            ('计科2502', '计算机科学与技术', 'CS101', 'T2023005', 60, FALSE, 1, TIME '15:25:00', TIME '17:05:00', 4, TIME '08:00:00', TIME '09:40:00'),
+            ('计科2502', '计算机科学与技术', 'CS103', 'T2023006', 60, FALSE, 2, TIME '08:00:00', TIME '09:40:00', 3, TIME '09:55:00', TIME '11:35:00'),
+            ('计科2502', '计算机科学与技术', 'CS104', 'T2023007', 60, FALSE, 1, TIME '09:55:00', TIME '11:35:00', 3, TIME '08:00:00', TIME '09:40:00'),
+            ('计科2502', '计算机科学与技术', 'CS110', 'T2023008', 60, FALSE, 2, TIME '13:30:00', TIME '15:10:00', 4, TIME '13:30:00', TIME '15:10:00'),
+            ('计科2502', '计算机科学与技术', 'CS108', 'T2023001', 40, TRUE, 5, TIME '08:00:00', TIME '09:40:00', NULL, NULL, NULL),
+            ('计科2502', '计算机科学与技术', 'CS111', 'T2023002', 40, TRUE, 5, TIME '09:55:00', TIME '11:35:00', NULL, NULL, NULL),
+            ('计科2502', '计算机科学与技术', 'CS113', 'T2023003', 40, TRUE, 3, TIME '18:30:00', TIME '20:10:00', 5, TIME '18:30:00', TIME '20:10:00'),
+            ('计科2502', '计算机科学与技术', 'CS116', 'T2023004', 40, TRUE, 2, TIME '18:30:00', TIME '20:10:00', 5, TIME '15:25:00', TIME '17:05:00'),
+            ('大数据2501', '数据科学与大数据技术', 'CS101', 'T2023006', 60, FALSE, 1, TIME '15:25:00', TIME '17:05:00', 4, TIME '08:00:00', TIME '09:40:00'),
+            ('大数据2501', '数据科学与大数据技术', 'CS103', 'T2023007', 60, FALSE, 2, TIME '08:00:00', TIME '09:40:00', 3, TIME '09:55:00', TIME '11:35:00'),
+            ('大数据2501', '数据科学与大数据技术', 'CS105', 'T2023007', 60, FALSE, 1, TIME '13:30:00', TIME '15:10:00', 3, TIME '13:30:00', TIME '15:10:00'),
+            ('大数据2501', '数据科学与大数据技术', 'CS106', 'T2023008', 60, FALSE, 2, TIME '09:55:00', TIME '11:35:00', 4, TIME '09:55:00', TIME '11:35:00'),
+            ('大数据2501', '数据科学与大数据技术', 'CS108', 'T2023002', 40, TRUE, 5, TIME '08:00:00', TIME '09:40:00', NULL, NULL, NULL),
+            ('大数据2501', '数据科学与大数据技术', 'CS109', 'T2023002', 40, TRUE, 2, TIME '15:25:00', TIME '17:05:00', 4, TIME '18:30:00', TIME '20:10:00'),
+            ('大数据2501', '数据科学与大数据技术', 'CS113', 'T2023004', 40, TRUE, 3, TIME '18:30:00', TIME '20:10:00', 5, TIME '18:30:00', TIME '20:10:00'),
+            ('大数据2501', '数据科学与大数据技术', 'CS116', 'T2023005', 40, TRUE, 2, TIME '18:30:00', TIME '20:10:00', 5, TIME '15:25:00', TIME '17:05:00'),
+            ('大数据2502', '数据科学与大数据技术', 'CS101', 'T2023007', 60, FALSE, 1, TIME '15:25:00', TIME '17:05:00', 4, TIME '08:00:00', TIME '09:40:00'),
+            ('大数据2502', '数据科学与大数据技术', 'CS103', 'T2023008', 60, FALSE, 2, TIME '08:00:00', TIME '09:40:00', 3, TIME '09:55:00', TIME '11:35:00'),
+            ('大数据2502', '数据科学与大数据技术', 'CS105', 'T2023001', 60, FALSE, 1, TIME '13:30:00', TIME '15:10:00', 3, TIME '13:30:00', TIME '15:10:00'),
+            ('大数据2502', '数据科学与大数据技术', 'CS106', 'T2023002', 60, FALSE, 2, TIME '09:55:00', TIME '11:35:00', 4, TIME '09:55:00', TIME '11:35:00'),
+            ('大数据2502', '数据科学与大数据技术', 'CS108', 'T2023003', 40, TRUE, 5, TIME '08:00:00', TIME '09:40:00', NULL, NULL, NULL),
+            ('大数据2502', '数据科学与大数据技术', 'CS109', 'T2023004', 40, TRUE, 2, TIME '15:25:00', TIME '17:05:00', 4, TIME '18:30:00', TIME '20:10:00'),
+            ('大数据2502', '数据科学与大数据技术', 'CS113', 'T2023005', 40, TRUE, 3, TIME '18:30:00', TIME '20:10:00', 5, TIME '18:30:00', TIME '20:10:00'),
+            ('大数据2502', '数据科学与大数据技术', 'CS116', 'T2023007', 40, TRUE, 2, TIME '18:30:00', TIME '20:10:00', 5, TIME '15:25:00', TIME '17:05:00')
     ) AS v (
+        class_name,
         major_name,
         course_code,
         teacher_no,
         capacity,
-        enrollment_open
+        enrollment_open,
+        weekday_one,
+        start_time_one,
+        end_time_one,
+        weekday_two,
+        start_time_two,
+        end_time_two
     )
     JOIN Dengjx_Majors13 m ON m.djx_MajorName13 = v.major_name
     JOIN Dengjx_Classes13 cl ON cl.djx_MajorId13 = m.djx_MajorId13
+    AND cl.djx_ClassName13 = v.class_name
     JOIN Dengjx_Courses13 c ON c.djx_CourseCode13 = v.course_code
     JOIN Dengjx_MajorCourses13 mc ON mc.djx_MajorId13 = m.djx_MajorId13
     AND mc.djx_CourseId13 = c.djx_CourseId13

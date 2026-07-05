@@ -10,12 +10,13 @@ class JwtServiceTests {
     void generatedTokenContainsUserIdUsernameAndRole() {
         JwtService jwtService = new JwtService("test-secret-for-academic-affairs", 120);
 
-        String token = jwtService.generateToken(7L, "teacher01", "TEACHER");
+        String token = jwtService.generateToken(7L, "teacher01", "TEACHER", 3);
 
         assertThat(jwtService.isValid(token)).isTrue();
         assertThat(jwtService.getUserId(token)).isEqualTo(7L);
         assertThat(jwtService.parseToken(token).getSubject()).isEqualTo("teacher01");
         assertThat(jwtService.getRole(token)).isEqualTo("TEACHER");
+        assertThat(jwtService.getTokenVersion(token)).isEqualTo(3);
     }
 
     @Test

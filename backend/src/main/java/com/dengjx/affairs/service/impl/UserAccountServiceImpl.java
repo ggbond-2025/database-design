@@ -10,6 +10,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.dengjx.affairs.dto.UserAccountRequest;
 import com.dengjx.affairs.common.BusinessException;
 import com.dengjx.affairs.common.PageResult;
+import org.springframework.dao.DataAccessException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -21,10 +24,20 @@ public class UserAccountServiceImpl implements UserAccountService {
 
     private final UserAccountMapper userAccountMapper;
     private final PasswordEncoder passwordEncoder;
+    private final JdbcTemplate jdbcTemplate;
 
-    public UserAccountServiceImpl(UserAccountMapper userAccountMapper, PasswordEncoder passwordEncoder) {
+    @Autowired
+    public UserAccountServiceImpl(
+            UserAccountMapper userAccountMapper,
+            PasswordEncoder passwordEncoder,
+            JdbcTemplate jdbcTemplate) {
         this.userAccountMapper = userAccountMapper;
         this.passwordEncoder = passwordEncoder;
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    public UserAccountServiceImpl(UserAccountMapper userAccountMapper, PasswordEncoder passwordEncoder) {
+        this(userAccountMapper, passwordEncoder, null);
     }
 
     public PageResult<UserAccount> list(String keyword, long page, long size) {
@@ -59,6 +72,7 @@ public class UserAccountServiceImpl implements UserAccountService {
         UserAccount user = getById(id);
         apply(request, user, false);
         userAccountMapper.updateById(user);
+        incrementTokenVersion(id);
         user.setPassword(null);
         return user;
     }
@@ -96,5 +110,18 @@ public class UserAccountServiceImpl implements UserAccountService {
         user.setStudentId(request.studentId());
         user.setTeacherId(request.teacherId());
         user.setEnabled(request.enabled() == null || request.enabled());
+    }
+
+    private void incrementTokenVersion(Long userId) {
+        if (jdbcTemplate == null) {
+            return;
+        }
+        try {
+            jdbcTemplate.update(
+                    "UPDATE Dengjx_Users13 SET djx_TokenVersion13 = djx_TokenVersion13 + 1 WHERE djx_UserId13 = ?",
+                    userId);
+        } catch (DataAccessException exception) {
+            // Older local databases may not have this column until the schema script is reapplied.
+        }
     }
 }
