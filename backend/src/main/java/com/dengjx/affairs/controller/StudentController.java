@@ -4,8 +4,10 @@ import com.dengjx.affairs.service.StudentService;
 import com.dengjx.affairs.entity.Student;
 import com.dengjx.affairs.common.ApiResponse;
 import com.dengjx.affairs.common.PageResult;
+import com.dengjx.affairs.dto.StudentImportResult;
 import com.dengjx.affairs.dto.StudentRequest;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/admin/students")
@@ -42,6 +45,11 @@ public class StudentController {
     @PostMapping
     public ApiResponse<Student> create(@Valid @RequestBody StudentRequest request) {
         return ApiResponse.ok(studentService.create(request));
+    }
+
+    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<StudentImportResult> importCsv(@RequestParam("file") MultipartFile file) {
+        return ApiResponse.ok(studentService.importCsv(file));
     }
 
     @PutMapping("/{id}")

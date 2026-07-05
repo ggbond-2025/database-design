@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.dengjx.affairs.service.impl.EnrollmentServiceImpl;
 import com.dengjx.affairs.service.impl.GradeServiceImpl;
+import com.dengjx.affairs.service.impl.StudentServiceImpl;
 import java.lang.reflect.Method;
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,11 @@ class TransactionBoundaryTests {
         assertTransactional(GradeServiceImpl.class.getMethod("adminCreate", com.dengjx.affairs.dto.GradeRequest.class));
         assertTransactional(GradeServiceImpl.class.getMethod("adminUpdate", Long.class, com.dengjx.affairs.dto.GradeRequest.class));
         assertTransactional(GradeServiceImpl.class.getMethod("adminDelete", Long.class));
+    }
+
+    @Test
+    void studentCascadeDeleteIsTransactional() throws NoSuchMethodException {
+        assertTransactional(StudentServiceImpl.class.getMethod("delete", Long.class));
     }
 
     private void assertTransactional(Method method) {

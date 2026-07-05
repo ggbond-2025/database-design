@@ -22,5 +22,6 @@ const emit = defineEmits<{
     />
     <el-button @click="emit('search')">查询</el-button>
     <el-button type="primary" @click="emit('create')">{{ createText || '新增' }}</el-button>
+    <slot />
   </div>
 </template>

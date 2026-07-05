@@ -1,0 +1,4 @@
+sno,sname,gender,age,classId,regionId,admissionDate
+20269901,测试学生一,MALE,18,1,1,2025-09-01
+20269902,测试学生二,FEMALE,18,1,1,2025-09-01
+20269903,测试学生三,MALE,19,1,1,2025-09-01

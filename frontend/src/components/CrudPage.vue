@@ -190,7 +190,9 @@ onMounted(async () => {
 
 <template>
   <PageContainer :title="config.title" :description="config.description">
-    <DataToolbar v-model="keyword" create-text="新增记录" @search="load" @create="openCreate" />
+    <DataToolbar v-model="keyword" create-text="新增记录" @search="load" @create="openCreate">
+      <slot name="toolbar-extra" :reload="load" />
+    </DataToolbar>
 
     <el-table v-loading="loading" :data="rows" border class="data-table">
       <el-table-column

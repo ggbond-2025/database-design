@@ -1,6 +1,12 @@
 import http from '@/api/http'
 import type { FieldOption } from '@/components/crudTypes'
 
+export interface StudentImportResult {
+  successCount: number
+  failureCount: number
+  errors: string[]
+}
+
 export function getAdminList<T = Record<string, unknown>>(path: string, params?: Record<string, unknown>) {
   return http.get<T, T>(path, { params })
 }
@@ -19,4 +25,10 @@ export function deleteAdmin(path: string) {
 
 export function getLookupOptions(name: string) {
   return http.get<FieldOption[], FieldOption[]>(`/admin/lookups/${name}`)
+}
+
+export function importStudentsFromCsv(file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return http.post<StudentImportResult, StudentImportResult>('/admin/students/import', formData)
 }

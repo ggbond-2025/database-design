@@ -1,10 +1,12 @@
 package com.dengjx.affairs.service;
 
 import com.dengjx.affairs.common.PageResult;
+import com.dengjx.affairs.dto.StudentImportResult;
 import com.dengjx.affairs.dto.StudentRequest;
 import com.dengjx.affairs.entity.Student;
 import java.util.List;
 import java.util.Map;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface StudentService {
 
@@ -17,6 +19,8 @@ public interface StudentService {
     Student update(Long id, StudentRequest request);
 
     void delete(Long id);
+
+    StudentImportResult importCsv(MultipartFile file);
 
     Map<String, Object> academicStatus(Long userId);
 

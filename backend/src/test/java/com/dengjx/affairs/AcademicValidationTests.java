@@ -1,19 +1,28 @@
 package com.dengjx.affairs;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 
 import com.dengjx.affairs.mapper.AssignmentMapper;
 import com.dengjx.affairs.service.AssignmentService;
 import com.dengjx.affairs.service.impl.AssignmentServiceImpl;
 import com.dengjx.affairs.dto.AssignmentRequest;
 import com.dengjx.affairs.common.BusinessException;
+import com.dengjx.affairs.dto.StudentImportResult;
 import com.dengjx.affairs.entity.Assignment;
+import com.dengjx.affairs.entity.Enrollment;
 import com.dengjx.affairs.mapper.CourseMapper;
+import com.dengjx.affairs.mapper.EnrollmentMapper;
+import com.dengjx.affairs.mapper.GradeMapper;
+import com.dengjx.affairs.mapper.MajorTransferApplicationMapper;
 import com.dengjx.affairs.service.CourseService;
 import com.dengjx.affairs.service.impl.CourseServiceImpl;
 import com.dengjx.affairs.dto.CourseRequest;
@@ -26,9 +35,12 @@ import com.dengjx.affairs.service.MajorCourseService;
 import com.dengjx.affairs.service.impl.MajorServiceImpl;
 import com.dengjx.affairs.service.impl.MajorCourseServiceImpl;
 import com.dengjx.affairs.mapper.StudentMapper;
+import com.dengjx.affairs.mapper.TeachingEvaluationMapper;
+import com.dengjx.affairs.mapper.UserAccountMapper;
 import com.dengjx.affairs.service.StudentService;
 import com.dengjx.affairs.service.impl.StudentServiceImpl;
 import com.dengjx.affairs.dto.StudentRequest;
+import com.dengjx.affairs.entity.UserAccount;
 import com.dengjx.affairs.mapper.TeacherMapper;
 import com.dengjx.affairs.service.TeacherService;
 import com.dengjx.affairs.service.impl.TeacherServiceImpl;
@@ -37,7 +49,11 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 class AcademicValidationTests {
 
@@ -59,6 +75,88 @@ class AcademicValidationTests {
         assertThatThrownBy(() -> service.create(request))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("入学时间");
+    }
+
+    @Test
+    void importStudentsFromCsvCreatesValidRowsAndReportsRowErrors() {
+        StudentMapper studentMapper = mock(StudentMapper.class);
+        UserAccountMapper userAccountMapper = mock(UserAccountMapper.class);
+        PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
+        when(passwordEncoder.encode("123456")).thenReturn("encoded-password");
+        when(studentMapper.insert(any(com.dengjx.affairs.entity.Student.class))).thenAnswer(invocation -> {
+            com.dengjx.affairs.entity.Student student = invocation.getArgument(0);
+            student.setStudentId(99L);
+            return 1;
+        });
+        StudentService service = new StudentServiceImpl(studentMapper, userAccountMapper, passwordEncoder);
+        String csv = """
+                sno,sname,gender,age,classId,regionId,admissionDate
+                20260001,张三,MALE,18,1,2,2025-09-01
+                20260002,李四,FEMALE,14,1,2,2025-09-01
+                """;
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "students.csv",
+                "text/csv",
+                csv.getBytes(StandardCharsets.UTF_8));
+
+        StudentImportResult result = service.importCsv(file);
+
+        assertThat(result.successCount()).isEqualTo(1);
+        assertThat(result.failureCount()).isEqualTo(1);
+        assertThat(result.errors()).hasSize(1);
+        assertThat(result.errors().get(0)).contains("第3行").contains("学生年龄");
+
+        ArgumentCaptor<UserAccount> accountCaptor = ArgumentCaptor.forClass(UserAccount.class);
+        verify(userAccountMapper).insert(accountCaptor.capture());
+        UserAccount account = accountCaptor.getValue();
+        assertThat(account.getUsername()).isEqualTo("s20260001");
+        assertThat(account.getPassword()).isEqualTo("encoded-password");
+        assertThat(account.getRole()).isEqualTo("STUDENT");
+        assertThat(account.getStudentId()).isEqualTo(99L);
+        assertThat(account.getTeacherId()).isNull();
+        assertThat(account.getEnabled()).isTrue();
+    }
+
+    @Test
+    void deleteStudentCleansDependentRecordsBeforeStudent() {
+        StudentMapper studentMapper = mock(StudentMapper.class);
+        UserAccountMapper userAccountMapper = mock(UserAccountMapper.class);
+        EnrollmentMapper enrollmentMapper = mock(EnrollmentMapper.class);
+        GradeMapper gradeMapper = mock(GradeMapper.class);
+        TeachingEvaluationMapper teachingEvaluationMapper = mock(TeachingEvaluationMapper.class);
+        MajorTransferApplicationMapper majorTransferApplicationMapper = mock(MajorTransferApplicationMapper.class);
+        Enrollment first = new Enrollment();
+        first.setEnrollmentId(101L);
+        Enrollment second = new Enrollment();
+        second.setEnrollmentId(102L);
+        when(enrollmentMapper.selectList(any())).thenReturn(List.of(first, second));
+        when(studentMapper.deleteById(7L)).thenReturn(1);
+        StudentService service = new StudentServiceImpl(
+                studentMapper,
+                userAccountMapper,
+                null,
+                enrollmentMapper,
+                gradeMapper,
+                teachingEvaluationMapper,
+                majorTransferApplicationMapper);
+
+        service.delete(7L);
+
+        InOrder order = inOrder(
+                enrollmentMapper,
+                gradeMapper,
+                teachingEvaluationMapper,
+                majorTransferApplicationMapper,
+                userAccountMapper,
+                studentMapper);
+        order.verify(enrollmentMapper).selectList(any());
+        order.verify(teachingEvaluationMapper).delete(any());
+        order.verify(gradeMapper).delete(any());
+        order.verify(enrollmentMapper).delete(any());
+        order.verify(majorTransferApplicationMapper).delete(any());
+        order.verify(userAccountMapper).delete(any());
+        order.verify(studentMapper).deleteById(7L);
     }
 
     @Test
