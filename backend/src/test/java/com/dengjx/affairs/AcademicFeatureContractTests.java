@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -43,7 +44,7 @@ class AcademicFeatureContractTests {
     }
 
     @Test
-    void majorTransferApprovalUpdatesStudentClassButCurrentTermTakesEffectNextSemester() {
+    void majorTransferApprovalRecordsTargetClassWithoutImmediatelyChangingStudentClass() {
         MajorTransferApplicationMapper applicationMapper = mock(MajorTransferApplicationMapper.class);
         StudentMapper studentMapper = mock(StudentMapper.class);
         MajorTransferApplication application = new MajorTransferApplication();
@@ -75,7 +76,7 @@ class AcademicFeatureContractTests {
         assertThat(approved.getEffectiveAcademicYear()).isEqualTo("2026-2027");
         assertThat(approved.getEffectiveSemester()).isEqualTo(1);
         verify(applicationMapper).updateById(application);
-        verify(studentMapper).updateById(any(Student.class));
+        verify(studentMapper, never()).updateById(any(Student.class));
     }
 
     @Test

@@ -191,8 +191,7 @@ public class StudentServiceImpl implements StudentService {
             validateCsvHeaders(parser);
             for (CSVRecord record : parser) {
                 try {
-                    Student student = create(toStudentRequest(record));
-                    createDefaultStudentAccount(student);
+                    importOneCsvRecord(record);
                     successCount++;
                 } catch (BusinessException exception) {
                     errors.add(rowError(record, exception.getMessage()));
@@ -204,6 +203,20 @@ public class StudentServiceImpl implements StudentService {
             throw new BusinessException("CSV文件读取失败");
         }
         return new StudentImportResult(successCount, errors.size(), errors);
+    }
+
+    private Student importOneCsvRecord(CSVRecord record) {
+        Student student = null;
+        try {
+            student = create(toStudentRequest(record));
+            createDefaultStudentAccount(student);
+            return student;
+        } catch (RuntimeException exception) {
+            if (student != null && student.getStudentId() != null) {
+                studentMapper.deleteById(student.getStudentId());
+            }
+            throw exception;
+        }
     }
 
     private void validate(StudentRequest request) {
@@ -320,6 +333,7 @@ public class StudentServiceImpl implements StudentService {
         Long studentId = userContextService.getStudentId(userId);
         Student student = getById(studentId);
         AcademicTermService.AcademicTerm term = academicTermService.current(student.getAdmissionDate());
+        Long classId = effectiveClassId(studentId, student.getClassId(), term);
         Map<String, Object> base = jdbcTemplate.queryForMap("""
                 SELECT s.djx_studentid13 AS studentId,
                        s.djx_sno13 AS sno,
@@ -331,10 +345,10 @@ public class StudentServiceImpl implements StudentService {
                        m.djx_majorname13 AS majorName,
                        m.djx_graduationcredits13 AS graduationCredits
                 FROM dengjx_students13 s
-                JOIN dengjx_classes13 cl ON cl.djx_classid13 = s.djx_classid13
+                JOIN dengjx_classes13 cl ON cl.djx_classid13 = ?
                 JOIN dengjx_majors13 m ON m.djx_majorid13 = cl.djx_majorid13
                 WHERE s.djx_studentid13 = ?
-                """, studentId);
+                """, classId, studentId);
         base.put("currentGrade", term.grade());
         base.put("currentSemester", term.semester());
         base.put("currentTermLabel", term.label());
@@ -344,6 +358,8 @@ public class StudentServiceImpl implements StudentService {
     public List<Map<String, Object>> classmates(Long userId) {
         Long studentId = userContextService.getStudentId(userId);
         Student student = getById(studentId);
+        AcademicTermService.AcademicTerm term = academicTermService.current(student.getAdmissionDate());
+        Long classId = effectiveClassId(studentId, student.getClassId(), term);
         return jdbcTemplate.queryForList("""
                 SELECT s.djx_sno13 AS sno,
                        s.djx_sname13 AS sname,
@@ -353,6 +369,53 @@ public class StudentServiceImpl implements StudentService {
                 JOIN dengjx_classes13 cl ON cl.djx_classid13 = s.djx_classid13
                 WHERE s.djx_classid13 = ?
                 ORDER BY s.djx_sno13
-                """, student.getClassId());
+                """, classId);
+    }
+
+    private Long effectiveClassId(Long studentId, Long currentClassId, AcademicTermService.AcademicTerm currentTerm) {
+        if (jdbcTemplate == null) {
+            return currentClassId;
+        }
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList("""
+                SELECT djx_fromclassid13 AS fromclassid,
+                       djx_targetclassid13 AS targetclassid,
+                       djx_effectiveacademicyear13 AS effectiveacademicyear,
+                       djx_effectivesemester13 AS effectivesemester
+                FROM dengjx_majortransferapplications13
+                WHERE djx_studentid13 = ?
+                  AND djx_status13 = 'APPROVED'
+                  AND djx_fromclassid13 IS NOT NULL
+                  AND djx_targetclassid13 IS NOT NULL
+                  AND djx_effectiveacademicyear13 IS NOT NULL
+                  AND djx_effectivesemester13 IS NOT NULL
+                ORDER BY djx_reviewedat13 DESC
+                LIMIT 1
+                """, studentId);
+        if (rows.isEmpty()) {
+            return currentClassId;
+        }
+        Map<String, Object> transfer = rows.get(0);
+        String effectiveAcademicYear = String.valueOf(transfer.get("effectiveacademicyear"));
+        int effectiveSemester = numberValue(transfer.get("effectivesemester")).intValue();
+        if (isBefore(currentTerm.academicYear(), currentTerm.semester(), effectiveAcademicYear, effectiveSemester)) {
+            return numberValue(transfer.get("fromclassid")).longValue();
+        }
+        return numberValue(transfer.get("targetclassid")).longValue();
+    }
+
+    private boolean isBefore(String academicYear, int semester, String effectiveAcademicYear, int effectiveSemester) {
+        int currentStartYear = Integer.parseInt(academicYear.substring(0, 4));
+        int effectiveStartYear = Integer.parseInt(effectiveAcademicYear.substring(0, 4));
+        if (currentStartYear != effectiveStartYear) {
+            return currentStartYear < effectiveStartYear;
+        }
+        return semester < effectiveSemester;
+    }
+
+    private Number numberValue(Object value) {
+        if (value instanceof Number number) {
+            return number;
+        }
+        throw new BusinessException("转专业班级生效数据不完整");
     }
 }

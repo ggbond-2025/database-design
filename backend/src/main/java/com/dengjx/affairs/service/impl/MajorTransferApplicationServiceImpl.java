@@ -6,7 +6,6 @@ import com.dengjx.affairs.common.PageResult;
 import com.dengjx.affairs.dto.MajorTransferReviewRequest;
 import com.dengjx.affairs.dto.MajorTransferSubmitRequest;
 import com.dengjx.affairs.entity.MajorTransferApplication;
-import com.dengjx.affairs.entity.Student;
 import com.dengjx.affairs.mapper.MajorTransferApplicationMapper;
 import com.dengjx.affairs.mapper.StudentMapper;
 import com.dengjx.affairs.security.UserContextService;
@@ -188,10 +187,6 @@ public class MajorTransferApplicationServiceImpl implements MajorTransferApplica
         }
         AcademicTermService.AcademicTerm currentTerm = currentStudentTerm(application.getStudentId());
         AcademicTermService.AcademicTerm effectiveTerm = nextTerm(currentTerm);
-        Student student = new Student();
-        student.setStudentId(application.getStudentId());
-        student.setClassId(targetClassId);
-        studentMapper.updateById(student);
         application.setTargetClassId(targetClassId);
         application.setEffectiveAcademicYear(effectiveTerm.academicYear());
         application.setEffectiveSemester(effectiveTerm.semester());

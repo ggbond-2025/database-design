@@ -49,6 +49,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -116,6 +117,36 @@ class AcademicValidationTests {
         assertThat(account.getStudentId()).isEqualTo(99L);
         assertThat(account.getTeacherId()).isNull();
         assertThat(account.getEnabled()).isTrue();
+    }
+
+    @Test
+    void importStudentsFromCsvRemovesInsertedStudentWhenDefaultAccountCreationFails() {
+        StudentMapper studentMapper = mock(StudentMapper.class);
+        UserAccountMapper userAccountMapper = mock(UserAccountMapper.class);
+        PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
+        when(passwordEncoder.encode("123456")).thenReturn("encoded-password");
+        when(studentMapper.insert(any(com.dengjx.affairs.entity.Student.class))).thenAnswer(invocation -> {
+            com.dengjx.affairs.entity.Student student = invocation.getArgument(0);
+            student.setStudentId(99L);
+            return 1;
+        });
+        when(userAccountMapper.insert(any(UserAccount.class))).thenThrow(new DataIntegrityViolationException("duplicate account"));
+        StudentService service = new StudentServiceImpl(studentMapper, userAccountMapper, passwordEncoder);
+        String csv = """
+                sno,sname,gender,age,classId,regionId,admissionDate
+                20260001,张三,MALE,18,1,2,2025-09-01
+                """;
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "students.csv",
+                "text/csv",
+                csv.getBytes(StandardCharsets.UTF_8));
+
+        StudentImportResult result = service.importCsv(file);
+
+        assertThat(result.successCount()).isZero();
+        assertThat(result.failureCount()).isEqualTo(1);
+        verify(studentMapper).deleteById(99L);
     }
 
     @Test
@@ -214,6 +245,30 @@ class AcademicValidationTests {
     }
 
     @Test
+    void assignmentCapacityCannotExceedClassroomCapacity() {
+        AssignmentService service = new AssignmentServiceImpl(mock(AssignmentMapper.class), new AssignmentMetadataJdbcTemplate(32, 20));
+        AssignmentRequest request = new AssignmentRequest(
+                1L,
+                1L,
+                1L,
+                1L,
+                "2023-2024",
+                1,
+                30,
+                true,
+                1,
+                LocalTime.of(8, 0),
+                LocalTime.of(9, 40),
+                null,
+                null,
+                null);
+
+        assertThatThrownBy(() -> service.create(request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("不能超过教室容量");
+    }
+
+    @Test
     void assignmentWeekdayMustBeBetweenMondayAndFriday() {
         AssignmentService service = new AssignmentServiceImpl(mock(AssignmentMapper.class));
         AssignmentRequest request = new AssignmentRequest(
@@ -306,6 +361,24 @@ class AcademicValidationTests {
 
         @Override
         public <T> T queryForObject(String sql, Class<T> requiredType, Object... args) {
+            return requiredType.cast(hours);
+        }
+    }
+
+    private static class AssignmentMetadataJdbcTemplate extends JdbcTemplate {
+        private final Integer hours;
+        private final Integer classroomCapacity;
+
+        AssignmentMetadataJdbcTemplate(Integer hours, Integer classroomCapacity) {
+            this.hours = hours;
+            this.classroomCapacity = classroomCapacity;
+        }
+
+        @Override
+        public <T> T queryForObject(String sql, Class<T> requiredType, Object... args) {
+            if (sql.contains("dengjx_classrooms13")) {
+                return requiredType.cast(classroomCapacity);
+            }
             return requiredType.cast(hours);
         }
     }

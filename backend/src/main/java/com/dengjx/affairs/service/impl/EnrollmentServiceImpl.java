@@ -275,9 +275,16 @@ public class EnrollmentServiceImpl implements EnrollmentService {
 
     @Transactional
     public Enrollment adminCreate(EnrollmentRequest request) {
+        String status = normalizeStatus(request.status());
         Assignment assignment = requireAssignment(request.assignmentId());
-        ensureCapacity(assignment);
-        return createOrRestore(request.studentId(), request.assignmentId(), normalizeStatus(request.status()));
+        if (ACTIVE_STATUSES.contains(status)) {
+            Map<String, Object> course = assignmentCourse(request.assignmentId());
+            StudentTermContext context = studentTermContext(request.studentId());
+            ensureAdminEnrollmentMatchesStudentContext(context, assignment, course);
+            ensureCapacity(assignment);
+            ensureNoScheduleConflict(context, assignment, numberValue(course.get("djx_hours13")).intValue());
+        }
+        return createOrRestore(request.studentId(), request.assignmentId(), status);
     }
 
     @Transactional
@@ -375,6 +382,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
     private Long effectiveClassId(Long studentId, Long currentClassId, AcademicTermService.AcademicTerm currentTerm) {
         List<Map<String, Object>> rows = jdbcTemplate.queryForList("""
                 SELECT djx_fromclassid13 AS fromclassid,
+                       djx_targetclassid13 AS targetclassid,
                        djx_effectiveacademicyear13 AS effectiveacademicyear,
                        djx_effectivesemester13 AS effectivesemester
                 FROM dengjx_majortransferapplications13
@@ -395,7 +403,8 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         if (isBefore(currentTerm.academicYear(), currentTerm.semester(), effectiveAcademicYear, effectiveSemester)) {
             return numberValue(transfer.get("fromclassid")).longValue();
         }
-        return currentClassId;
+        Object targetClassId = transfer.get("targetclassid");
+        return targetClassId == null ? currentClassId : numberValue(targetClassId).longValue();
     }
 
     private boolean isBefore(String academicYear, int semester, String effectiveAcademicYear, int effectiveSemester) {
@@ -418,6 +427,20 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                 JOIN dengjx_courses13 c ON c.djx_courseid13 = mc.djx_courseid13
                 WHERE a.djx_assignmentid13 = ?
                 """, assignmentId);
+    }
+
+    private void ensureAdminEnrollmentMatchesStudentContext(
+            StudentTermContext context,
+            Assignment assignment,
+            Map<String, Object> course) {
+        if (!assignment.getClassId().equals(context.classId())
+                || !context.academicYear().equals(assignment.getAcademicYear())
+                || assignment.getSemester() == null
+                || assignment.getSemester() != context.semester()
+                || numberValue(course.get("djx_targetgrade13")).intValue() != context.grade()
+                || numberValue(course.get("djx_targetsemester13")).intValue() != context.semester()) {
+            throw new BusinessException("只能为学生当前年级学期对应课程创建选课记录");
+        }
     }
 
     private Number numberValue(Object value) {

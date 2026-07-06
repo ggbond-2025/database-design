@@ -11,8 +11,10 @@ import com.dengjx.affairs.common.PageResult;
 import java.time.LocalTime;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 @Service
@@ -49,7 +51,9 @@ public class AssignmentServiceImpl implements AssignmentService {
         return assignment;
     }
 
+    @Transactional
     public Assignment create(AssignmentRequest request) {
+        lockAssignmentsForScheduleCheck();
         validate(request, null);
         Assignment assignment = new Assignment();
         apply(request, assignment);
@@ -57,7 +61,9 @@ public class AssignmentServiceImpl implements AssignmentService {
         return assignment;
     }
 
+    @Transactional
     public Assignment update(Long id, AssignmentRequest request) {
+        lockAssignmentsForScheduleCheck();
         validate(request, id);
         Assignment assignment = getById(id);
         apply(request, assignment);
@@ -78,6 +84,7 @@ public class AssignmentServiceImpl implements AssignmentService {
         if (request.capacity() == null || request.capacity() <= 0) {
             throw new BusinessException("课程容量必须大于0");
         }
+        validateClassroomCapacity(request.classroomId(), request.capacity());
         validateSlot("第一个上课时间", request.weekdayOne(), request.startTimeOne(), request.endTimeOne());
         validateSlot("第二个上课时间", request.weekdayTwo(), request.startTimeTwo(), request.endTimeTwo());
         Integer hours = courseHours(request.majorCourseId());
@@ -179,6 +186,32 @@ public class AssignmentServiceImpl implements AssignmentService {
                 JOIN dengjx_courses13 c ON c.djx_courseid13 = mc.djx_courseid13
                 WHERE mc.djx_majorcourseid13 = ?
                 """, Integer.class, majorCourseId);
+    }
+
+    private void validateClassroomCapacity(Long classroomId, Integer assignmentCapacity) {
+        if (jdbcTemplate == null || classroomId == null || assignmentCapacity == null) {
+            return;
+        }
+        Integer classroomCapacity;
+        try {
+            classroomCapacity = jdbcTemplate.queryForObject("""
+                    SELECT djx_capacity13
+                    FROM dengjx_classrooms13
+                    WHERE djx_classroomid13 = ?
+                    """, Integer.class, classroomId);
+        } catch (DataAccessException exception) {
+            return;
+        }
+        if (classroomCapacity != null && assignmentCapacity > classroomCapacity) {
+            throw new BusinessException("课程容量不能超过教室容量");
+        }
+    }
+
+    private void lockAssignmentsForScheduleCheck() {
+        if (jdbcTemplate == null || jdbcTemplate.getDataSource() == null) {
+            return;
+        }
+        jdbcTemplate.execute("LOCK TABLE dengjx_teachingassignments13 IN SHARE ROW EXCLUSIVE MODE");
     }
 
     private enum ScheduleResource {

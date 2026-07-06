@@ -15,6 +15,7 @@ import com.dengjx.affairs.entity.Assignment;
 import com.dengjx.affairs.mapper.AssignmentMapper;
 import com.dengjx.affairs.common.BusinessException;
 import com.dengjx.affairs.dto.AssignmentRequest;
+import com.dengjx.affairs.dto.EnrollmentRequest;
 import com.dengjx.affairs.mapper.EnrollmentMapper;
 import com.dengjx.affairs.service.EnrollmentService;
 import com.dengjx.affairs.service.EnrollmentSettingService;
@@ -180,6 +181,50 @@ class BusinessRuleTests {
         service.enroll(10L, 3L);
 
         assertThat(jdbcTemplate.lockedAssignmentId).isEqualTo(3L);
+    }
+
+    @Test
+    void adminCreateEnrollmentRejectsAssignmentOutsideStudentCurrentClass() {
+        EnrollmentMapper enrollmentMapper = mock(EnrollmentMapper.class);
+        AssignmentMapper assignmentMapper = mock(AssignmentMapper.class);
+        GradeMapper gradeMapper = mock(GradeMapper.class);
+        EnrollmentSettingService enrollmentSettingService = mock(EnrollmentSettingService.class);
+        Assignment assignment = new Assignment();
+        assignment.setAssignmentId(3L);
+        assignment.setClassId(99L);
+        assignment.setAcademicYear("2025-2026");
+        assignment.setSemester(2);
+        assignment.setCapacity(30);
+        assignment.setEnrollmentOpen(true);
+
+        when(enrollmentSettingService.isEnabled()).thenReturn(true);
+        when(assignmentMapper.selectById(3L)).thenReturn(assignment);
+        when(enrollmentMapper.selectCount(any())).thenReturn(0L);
+
+        EnrollmentService service = new EnrollmentServiceImpl(
+                enrollmentMapper,
+                assignmentMapper,
+                gradeMapper,
+                new FakeUserContextService(),
+                new AdminEnrollmentJdbcTemplate(),
+                new FixedAcademicTermService(),
+                enrollmentSettingService);
+
+        assertThatThrownBy(() -> service.adminCreate(new EnrollmentRequest(1L, 3L, "SELECTED")))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("只能为学生当前年级学期对应课程创建选课记录");
+    }
+
+    @Test
+    void assignmentCreateLocksScheduleTableBeforeCheckingConflicts() {
+        AssignmentMapper assignmentMapper = mock(AssignmentMapper.class);
+        LockingAssignmentJdbcTemplate jdbcTemplate = new LockingAssignmentJdbcTemplate();
+        when(assignmentMapper.selectList(any())).thenReturn(List.of());
+        AssignmentService service = new AssignmentServiceImpl(assignmentMapper, jdbcTemplate);
+
+        service.create(assignmentRequest(1L, 7L, 31L, LocalTime.of(8, 30), LocalTime.of(10, 0)));
+
+        assertThat(jdbcTemplate.lockSql).contains("LOCK TABLE dengjx_teachingassignments13");
     }
 
     @Test
@@ -360,6 +405,60 @@ class BusinessRuleTests {
         @Override
         public List<Map<String, Object>> queryForList(String sql, Object... args) {
             return List.of();
+        }
+    }
+
+    private static class AdminEnrollmentJdbcTemplate extends JdbcTemplate {
+
+        @Override
+        public <T> T queryForObject(String sql, Class<T> requiredType, Object... args) {
+            if (sql.contains("FOR UPDATE")) {
+                return requiredType.cast(((Number) args[0]).longValue());
+            }
+            return requiredType.cast(32);
+        }
+
+        @Override
+        public Map<String, Object> queryForMap(String sql, Object... args) {
+            if (sql.contains("FROM dengjx_students13")) {
+                return Map.of(
+                        "djx_studentid13", 1L,
+                        "djx_classid13", 1L,
+                        "djx_admissiondate13", LocalDate.of(2025, 9, 1));
+            }
+            return Map.of("djx_coursetype13", "ELECTIVE", "djx_targetgrade13", 1, "djx_targetsemester13", 2, "djx_hours13", 32);
+        }
+
+        @Override
+        public List<Map<String, Object>> queryForList(String sql, Object... args) {
+            return List.of();
+        }
+    }
+
+    private static class LockingAssignmentJdbcTemplate extends CourseHoursJdbcTemplate {
+
+        private String lockSql;
+
+        LockingAssignmentJdbcTemplate() {
+            super(32);
+        }
+
+        @Override
+        public javax.sql.DataSource getDataSource() {
+            return new org.springframework.jdbc.datasource.DriverManagerDataSource();
+        }
+
+        @Override
+        public void execute(String sql) {
+            this.lockSql = sql;
+        }
+
+        @Override
+        public <T> T queryForObject(String sql, Class<T> requiredType, Object... args) {
+            if (sql.contains("dengjx_classrooms13")) {
+                return requiredType.cast(100);
+            }
+            return super.queryForObject(sql, requiredType, args);
         }
     }
 

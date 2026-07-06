@@ -4,12 +4,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.dengjx.affairs.service.impl.EnrollmentServiceImpl;
 import com.dengjx.affairs.service.impl.GradeServiceImpl;
+import com.dengjx.affairs.service.impl.AssignmentServiceImpl;
 import com.dengjx.affairs.service.impl.StudentServiceImpl;
 import java.lang.reflect.Method;
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.annotation.Transactional;
 
 class TransactionBoundaryTests {
+
+    @Test
+    void assignmentWriteOperationsAreTransactional() throws NoSuchMethodException {
+        assertTransactional(AssignmentServiceImpl.class.getMethod("create", com.dengjx.affairs.dto.AssignmentRequest.class));
+        assertTransactional(AssignmentServiceImpl.class.getMethod("update", Long.class, com.dengjx.affairs.dto.AssignmentRequest.class));
+    }
 
     @Test
     void enrollmentWriteOperationsAreTransactional() throws NoSuchMethodException {
