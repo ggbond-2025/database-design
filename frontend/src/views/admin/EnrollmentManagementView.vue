@@ -17,6 +17,7 @@ const dialogVisible = ref(false)
 const page = ref(1)
 const size = ref(10)
 const total = ref(0)
+const keyword = ref('')
 const rows = ref<Record<string, unknown>[]>([])
 const studentOptions = ref<FieldOption[]>([])
 const assignmentOptions = ref<FieldOption[]>([])
@@ -38,6 +39,7 @@ async function load() {
   loading.value = true
   try {
     const result = await getAdminList<PageResult<Record<string, unknown>>>('/admin/enrollments', {
+      keyword: keyword.value,
       page: page.value,
       size: size.value
     })
@@ -46,6 +48,11 @@ async function load() {
   } finally {
     loading.value = false
   }
+}
+
+async function search() {
+  page.value = 1
+  await load()
 }
 
 async function loadEnrollmentSetting() {
@@ -103,6 +110,15 @@ onMounted(async () => {
 <template>
   <PageContainer title="选课记录管理" description="查看学生选课状态，新增或退选异常记录。">
     <div class="data-toolbar">
+      <el-input
+        v-model="keyword"
+        class="toolbar-search"
+        clearable
+        placeholder="学号、姓名、班级、课程或教师"
+        @keyup.enter="search"
+        @clear="search"
+      />
+      <el-button @click="search">查询</el-button>
       <el-button type="primary" @click="openCreate">新增/恢复选课</el-button>
       <el-button @click="load">刷新</el-button>
       <el-switch

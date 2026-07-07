@@ -23,7 +23,17 @@ public class ClassroomServiceImpl implements ClassroomService {
     public PageResult<Classroom> list(String keyword, long page, long size) {
         LambdaQueryWrapper<Classroom> wrapper = new LambdaQueryWrapper<>();
         if (StringUtils.hasText(keyword)) {
-            wrapper.like(Classroom::getClassroomName, keyword);
+            String trimmedKeyword = keyword.trim();
+            String likeKeyword = "%" + trimmedKeyword + "%";
+            wrapper.and(query -> query
+                    .like(Classroom::getClassroomName, trimmedKeyword)
+                    .or().apply("""
+                            djx_buildingid13 IN (
+                                SELECT djx_buildingid13
+                                FROM dengjx_teachingbuildings13
+                                WHERE djx_buildingname13 LIKE {0}
+                            )
+                            """, likeKeyword));
         }
         wrapper.orderByAsc(Classroom::getClassroomId);
         Page<Classroom> result = classroomMapper.selectPage(new Page<>(page, size), wrapper);

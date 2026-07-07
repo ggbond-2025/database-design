@@ -21,11 +21,13 @@ import com.dengjx.affairs.security.UserContextService;
 import com.dengjx.affairs.service.EnrollmentSettingService;
 import java.sql.Date;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 public class EnrollmentServiceImpl implements EnrollmentService {
@@ -243,8 +245,30 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         return jdbcTemplate.queryForList(sql, assignmentId);
     }
 
-    public PageResult<Map<String, Object>> adminList(long page, long size) {
+    public PageResult<Map<String, Object>> adminList(String keyword, long page, long size) {
         long offset = (page - 1) * size;
+        String whereClause = "";
+        List<Object> filterArgs = new ArrayList<>();
+        if (StringUtils.hasText(keyword)) {
+            String likeKeyword = "%" + keyword.trim() + "%";
+            whereClause = """
+                    WHERE s.djx_sno13 LIKE ?
+                       OR s.djx_sname13 LIKE ?
+                       OR cl.djx_classname13 LIKE ?
+                       OR c.djx_coursecode13 LIKE ?
+                       OR c.djx_coursename13 LIKE ?
+                       OR mc.djx_coursetype13 LIKE ?
+                       OR t.djx_tname13 LIKE ?
+                       OR a.djx_academicyear13 LIKE ?
+                       OR e.djx_status13 LIKE ?
+                    """;
+            for (int i = 0; i < 9; i++) {
+                filterArgs.add(likeKeyword);
+            }
+        }
+        List<Object> queryArgs = new ArrayList<>(filterArgs);
+        queryArgs.add(size);
+        queryArgs.add(offset);
         List<Map<String, Object>> rows = jdbcTemplate.queryForList("""
                 SELECT e.djx_enrollmentid13 AS "enrollmentId",
                        e.djx_status13 AS "status",
@@ -266,10 +290,21 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                 JOIN dengjx_courses13 c ON c.djx_courseid13 = mc.djx_courseid13
                 JOIN dengjx_teachers13 t ON t.djx_teacherid13 = a.djx_teacherid13
                 JOIN dengjx_classes13 cl ON cl.djx_classid13 = s.djx_classid13
+                %s
                 ORDER BY e.djx_selectedat13 DESC
                 LIMIT ? OFFSET ?
-                """, size, offset);
-        Long total = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM dengjx_enrollments13", Long.class);
+                """.formatted(whereClause), queryArgs.toArray());
+        Long total = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM dengjx_enrollments13 e
+                JOIN dengjx_students13 s ON s.djx_studentid13 = e.djx_studentid13
+                JOIN dengjx_teachingassignments13 a ON a.djx_assignmentid13 = e.djx_assignmentid13
+                JOIN dengjx_majorcourses13 mc ON mc.djx_majorcourseid13 = a.djx_majorcourseid13
+                JOIN dengjx_courses13 c ON c.djx_courseid13 = mc.djx_courseid13
+                JOIN dengjx_teachers13 t ON t.djx_teacherid13 = a.djx_teacherid13
+                JOIN dengjx_classes13 cl ON cl.djx_classid13 = s.djx_classid13
+                %s
+                """.formatted(whereClause), Long.class, filterArgs.toArray());
         return PageResult.of(rows, total == null ? 0 : total, page, size);
     }
 

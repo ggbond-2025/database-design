@@ -167,6 +167,54 @@ class AcademicFeatureContractTests {
     }
 
     @Test
+    void finalExamRejectsStudentExamTimeConflict() {
+        FinalExamMapper mapper = mock(FinalExamMapper.class);
+        when(mapper.selectCount(any())).thenReturn(0L);
+        FinalExamService service = new FinalExamServiceImpl(
+                mapper,
+                new FixedStudentUserContextService(),
+                new ConflictingExamJdbcTemplate("candidate_student"));
+
+        FinalExamRequest request = new FinalExamRequest(5L, "2025-2026", 2, LocalDateTime.of(2026, 6, 20, 9, 0));
+
+        assertThatThrownBy(() -> service.create(request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("学生考试时间冲突");
+    }
+
+    @Test
+    void finalExamRejectsTeacherExamTimeConflict() {
+        FinalExamMapper mapper = mock(FinalExamMapper.class);
+        when(mapper.selectCount(any())).thenReturn(0L);
+        FinalExamService service = new FinalExamServiceImpl(
+                mapper,
+                new FixedStudentUserContextService(),
+                new ConflictingExamJdbcTemplate("candidate_teacher"));
+
+        FinalExamRequest request = new FinalExamRequest(5L, "2025-2026", 2, LocalDateTime.of(2026, 6, 20, 9, 0));
+
+        assertThatThrownBy(() -> service.create(request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("教师考试时间冲突");
+    }
+
+    @Test
+    void finalExamRejectsClassroomExamTimeConflict() {
+        FinalExamMapper mapper = mock(FinalExamMapper.class);
+        when(mapper.selectCount(any())).thenReturn(0L);
+        FinalExamService service = new FinalExamServiceImpl(
+                mapper,
+                new FixedStudentUserContextService(),
+                new ConflictingExamJdbcTemplate("candidate_classroom"));
+
+        FinalExamRequest request = new FinalExamRequest(5L, "2025-2026", 2, LocalDateTime.of(2026, 6, 20, 9, 0));
+
+        assertThatThrownBy(() -> service.create(request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("教室考试时间冲突");
+    }
+
+    @Test
     void studentFinalExamListUsesAssignmentClassroomAsDefaultLocation() {
         FinalExamService service = new FinalExamServiceImpl(
                 mock(FinalExamMapper.class),
@@ -307,7 +355,27 @@ class AcademicFeatureContractTests {
 
         @Override
         public <T> T queryForObject(String sql, Class<T> requiredType, Object... args) {
-            return requiredType.cast(1L);
+            if (sql.contains("e.djx_status13 = 'COMPLETED'")) {
+                return requiredType.cast(1L);
+            }
+            return requiredType.cast(0L);
+        }
+    }
+
+    private static class ConflictingExamJdbcTemplate extends FixedExamJdbcTemplate {
+
+        private final String conflictAlias;
+
+        ConflictingExamJdbcTemplate(String conflictAlias) {
+            this.conflictAlias = conflictAlias;
+        }
+
+        @Override
+        public <T> T queryForObject(String sql, Class<T> requiredType, Object... args) {
+            if (sql.contains(conflictAlias)) {
+                return requiredType.cast(1L);
+            }
+            return requiredType.cast(0L);
         }
     }
 

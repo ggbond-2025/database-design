@@ -23,7 +23,17 @@ public class SchoolClassServiceImpl implements SchoolClassService {
     public PageResult<SchoolClass> list(String keyword, long page, long size) {
         LambdaQueryWrapper<SchoolClass> wrapper = new LambdaQueryWrapper<>();
         if (StringUtils.hasText(keyword)) {
-            wrapper.like(SchoolClass::getClassName, keyword);
+            String trimmedKeyword = keyword.trim();
+            String likeKeyword = "%" + trimmedKeyword + "%";
+            wrapper.and(query -> query
+                    .like(SchoolClass::getClassName, trimmedKeyword)
+                    .or().apply("""
+                            djx_majorid13 IN (
+                                SELECT djx_majorid13
+                                FROM dengjx_majors13
+                                WHERE djx_majorname13 LIKE {0}
+                            )
+                            """, likeKeyword));
         }
         wrapper.orderByAsc(SchoolClass::getClassId);
         Page<SchoolClass> result = classMapper.selectPage(new Page<>(page, size), wrapper);

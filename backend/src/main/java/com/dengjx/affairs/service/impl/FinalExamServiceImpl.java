@@ -9,6 +9,7 @@ import com.dengjx.affairs.entity.FinalExam;
 import com.dengjx.affairs.mapper.FinalExamMapper;
 import com.dengjx.affairs.security.UserContextService;
 import com.dengjx.affairs.service.FinalExamService;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -34,7 +35,18 @@ public class FinalExamServiceImpl implements FinalExamService {
     public PageResult<FinalExam> list(String keyword, long page, long size) {
         LambdaQueryWrapper<FinalExam> wrapper = new LambdaQueryWrapper<>();
         if (StringUtils.hasText(keyword)) {
-            wrapper.like(FinalExam::getAcademicYear, keyword);
+            String trimmedKeyword = keyword.trim();
+            String likeKeyword = "%" + trimmedKeyword + "%";
+            wrapper.and(query -> query
+                    .like(FinalExam::getAcademicYear, trimmedKeyword)
+                    .or().apply("""
+                            djx_courseid13 IN (
+                                SELECT djx_courseid13
+                                FROM dengjx_courses13
+                                WHERE djx_coursecode13 LIKE {0}
+                                   OR djx_coursename13 LIKE {0}
+                            )
+                            """, likeKeyword));
         }
         wrapper.orderByAsc(FinalExam::getAcademicYear)
                 .orderByAsc(FinalExam::getSemester)
@@ -107,6 +119,114 @@ public class FinalExamServiceImpl implements FinalExamService {
         if (finalExamMapper.selectCount(wrapper) > 0) {
             throw new BusinessException("该课程本学年学期期末考试已存在");
         }
+        validateStudentExamTimeConflict(request, currentId);
+        validateTeacherExamTimeConflict(request, currentId);
+        validateClassroomExamTimeConflict(request, currentId);
+    }
+
+    private void validateStudentExamTimeConflict(FinalExamRequest request, Long currentId) {
+        String sql = """
+                SELECT COUNT(*)
+                FROM dengjx_finalexams13 existing_exam
+                JOIN dengjx_majorcourses13 existing_mc
+                    ON existing_mc.djx_courseid13 = existing_exam.djx_courseid13
+                JOIN dengjx_teachingassignments13 existing_assignment
+                    ON existing_assignment.djx_majorcourseid13 = existing_mc.djx_majorcourseid13
+                    AND existing_assignment.djx_academicyear13 = existing_exam.djx_academicyear13
+                    AND existing_assignment.djx_semester13 = existing_exam.djx_semester13
+                JOIN dengjx_enrollments13 existing_enrollment
+                    ON existing_enrollment.djx_assignmentid13 = existing_assignment.djx_assignmentid13
+                    AND existing_enrollment.djx_status13 IN ('SELECTED', 'COMPLETED')
+                JOIN dengjx_majorcourses13 candidate_mc
+                    ON candidate_mc.djx_courseid13 = ?
+                JOIN dengjx_teachingassignments13 candidate_assignment
+                    ON candidate_assignment.djx_majorcourseid13 = candidate_mc.djx_majorcourseid13
+                    AND candidate_assignment.djx_academicyear13 = ?
+                    AND candidate_assignment.djx_semester13 = ?
+                JOIN dengjx_enrollments13 candidate_student
+                    ON candidate_student.djx_assignmentid13 = candidate_assignment.djx_assignmentid13
+                    AND candidate_student.djx_studentid13 = existing_enrollment.djx_studentid13
+                    AND candidate_student.djx_status13 IN ('SELECTED', 'COMPLETED')
+                WHERE existing_exam.djx_academicyear13 = ?
+                  AND existing_exam.djx_semester13 = ?
+                  AND existing_exam.djx_examtime13 = ?
+                  AND existing_exam.djx_courseid13 <> ?
+                """;
+        if (hasExamConflict(sql, request, currentId)) {
+            throw new BusinessException("学生考试时间冲突：同一学生同一时间已有其他考试");
+        }
+    }
+
+    private void validateTeacherExamTimeConflict(FinalExamRequest request, Long currentId) {
+        String sql = """
+                SELECT COUNT(*)
+                FROM dengjx_finalexams13 existing_exam
+                JOIN dengjx_majorcourses13 existing_mc
+                    ON existing_mc.djx_courseid13 = existing_exam.djx_courseid13
+                JOIN dengjx_teachingassignments13 existing_assignment
+                    ON existing_assignment.djx_majorcourseid13 = existing_mc.djx_majorcourseid13
+                    AND existing_assignment.djx_academicyear13 = existing_exam.djx_academicyear13
+                    AND existing_assignment.djx_semester13 = existing_exam.djx_semester13
+                JOIN dengjx_majorcourses13 candidate_mc
+                    ON candidate_mc.djx_courseid13 = ?
+                JOIN dengjx_teachingassignments13 candidate_teacher
+                    ON candidate_teacher.djx_majorcourseid13 = candidate_mc.djx_majorcourseid13
+                    AND candidate_teacher.djx_academicyear13 = ?
+                    AND candidate_teacher.djx_semester13 = ?
+                    AND candidate_teacher.djx_teacherid13 = existing_assignment.djx_teacherid13
+                WHERE existing_exam.djx_academicyear13 = ?
+                  AND existing_exam.djx_semester13 = ?
+                  AND existing_exam.djx_examtime13 = ?
+                  AND existing_exam.djx_courseid13 <> ?
+                """;
+        if (hasExamConflict(sql, request, currentId)) {
+            throw new BusinessException("教师考试时间冲突：同一教师同一时间已有其他考试");
+        }
+    }
+
+    private void validateClassroomExamTimeConflict(FinalExamRequest request, Long currentId) {
+        String sql = """
+                SELECT COUNT(*)
+                FROM dengjx_finalexams13 existing_exam
+                JOIN dengjx_majorcourses13 existing_mc
+                    ON existing_mc.djx_courseid13 = existing_exam.djx_courseid13
+                JOIN dengjx_teachingassignments13 existing_assignment
+                    ON existing_assignment.djx_majorcourseid13 = existing_mc.djx_majorcourseid13
+                    AND existing_assignment.djx_academicyear13 = existing_exam.djx_academicyear13
+                    AND existing_assignment.djx_semester13 = existing_exam.djx_semester13
+                JOIN dengjx_majorcourses13 candidate_mc
+                    ON candidate_mc.djx_courseid13 = ?
+                JOIN dengjx_teachingassignments13 candidate_classroom
+                    ON candidate_classroom.djx_majorcourseid13 = candidate_mc.djx_majorcourseid13
+                    AND candidate_classroom.djx_academicyear13 = ?
+                    AND candidate_classroom.djx_semester13 = ?
+                    AND candidate_classroom.djx_classroomid13 = existing_assignment.djx_classroomid13
+                WHERE existing_exam.djx_academicyear13 = ?
+                  AND existing_exam.djx_semester13 = ?
+                  AND existing_exam.djx_examtime13 = ?
+                  AND existing_exam.djx_courseid13 <> ?
+                """;
+        if (hasExamConflict(sql, request, currentId)) {
+            throw new BusinessException("教室考试时间冲突：同一教室同一时间已有其他考试");
+        }
+    }
+
+    private boolean hasExamConflict(String baseSql, FinalExamRequest request, Long currentId) {
+        List<Object> args = new ArrayList<>();
+        args.add(request.courseId());
+        args.add(request.academicYear());
+        args.add(request.semester());
+        args.add(request.academicYear());
+        args.add(request.semester());
+        args.add(request.examTime());
+        args.add(request.courseId());
+        String sql = baseSql;
+        if (currentId != null) {
+            sql += "  AND existing_exam.djx_examid13 <> ?\n";
+            args.add(currentId);
+        }
+        Long count = jdbcTemplate.queryForObject(sql, Long.class, args.toArray());
+        return count != null && count > 0;
     }
 
     private void ensureCourseNotCompleted(Long courseId, String academicYear, Integer semester) {

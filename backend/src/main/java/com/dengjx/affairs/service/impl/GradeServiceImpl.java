@@ -18,10 +18,12 @@ import com.dengjx.affairs.entity.Enrollment;
 import com.dengjx.affairs.mapper.EnrollmentMapper;
 import com.dengjx.affairs.dto.GradeRequest;
 import com.dengjx.affairs.security.UserContextService;
+import java.util.ArrayList;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 public class GradeServiceImpl implements GradeService {
@@ -91,8 +93,27 @@ public class GradeServiceImpl implements GradeService {
         return grade;
     }
 
-    public PageResult<Map<String, Object>> adminAssignmentList(long page, long size) {
+    public PageResult<Map<String, Object>> adminAssignmentList(String keyword, long page, long size) {
         long offset = (page - 1) * size;
+        String whereClause = "";
+        List<Object> filterArgs = new ArrayList<>();
+        if (StringUtils.hasText(keyword)) {
+            String likeKeyword = "%" + keyword.trim() + "%";
+            whereClause = """
+                WHERE c.djx_coursecode13 LIKE ?
+                   OR c.djx_coursename13 LIKE ?
+                   OR mc.djx_coursetype13 LIKE ?
+                   OR cl.djx_classname13 LIKE ?
+                   OR t.djx_tname13 LIKE ?
+                   OR a.djx_academicyear13 LIKE ?
+                """;
+            for (int i = 0; i < 6; i++) {
+                filterArgs.add(likeKeyword);
+            }
+        }
+        List<Object> queryArgs = new ArrayList<>(filterArgs);
+        queryArgs.add(size);
+        queryArgs.add(offset);
         List<Map<String, Object>> rows = jdbcTemplate.queryForList("""
                 SELECT a.djx_assignmentid13 AS "assignmentId",
                        c.djx_coursecode13 AS "courseCode",
@@ -113,6 +134,7 @@ public class GradeServiceImpl implements GradeService {
                 LEFT JOIN dengjx_enrollments13 e ON e.djx_assignmentid13 = a.djx_assignmentid13
                     AND e.djx_status13 IN ('SELECTED', 'COMPLETED')
                 LEFT JOIN dengjx_grades13 g ON g.djx_enrollmentid13 = e.djx_enrollmentid13
+                %s
                 GROUP BY a.djx_assignmentid13,
                          c.djx_coursecode13,
                          c.djx_coursename13,
@@ -123,8 +145,16 @@ public class GradeServiceImpl implements GradeService {
                          a.djx_semester13
                 ORDER BY a.djx_academicyear13 DESC, a.djx_semester13 DESC, cl.djx_classname13, c.djx_coursecode13
                 LIMIT ? OFFSET ?
-                """, size, offset);
-        Long total = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM dengjx_teachingassignments13", Long.class);
+                """.formatted(whereClause), queryArgs.toArray());
+        Long total = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM dengjx_teachingassignments13 a
+                JOIN dengjx_majorcourses13 mc ON mc.djx_majorcourseid13 = a.djx_majorcourseid13
+                JOIN dengjx_courses13 c ON c.djx_courseid13 = mc.djx_courseid13
+                JOIN dengjx_classes13 cl ON cl.djx_classid13 = a.djx_classid13
+                JOIN dengjx_teachers13 t ON t.djx_teacherid13 = a.djx_teacherid13
+                %s
+                """.formatted(whereClause), Long.class, filterArgs.toArray());
         return PageResult.of(rows, total == null ? 0 : total, page, size);
     }
 

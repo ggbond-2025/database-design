@@ -20,6 +20,7 @@ const dialogVisible = ref(false)
 const page = ref(1)
 const size = ref(10)
 const total = ref(0)
+const keyword = ref('')
 const assignments = ref<Row[]>([])
 const students = ref<Row[]>([])
 const currentAssignment = ref<Row>()
@@ -47,6 +48,7 @@ async function loadAssignments() {
   loading.value = true
   try {
     const result = await getAdminList<PageResult<Row>>('/admin/grades/assignments', {
+      keyword: keyword.value,
       page: page.value,
       size: size.value
     })
@@ -55,6 +57,11 @@ async function loadAssignments() {
   } finally {
     loading.value = false
   }
+}
+
+async function searchAssignments() {
+  page.value = 1
+  await loadAssignments()
 }
 
 async function openDetail(row: Row) {
@@ -125,6 +132,15 @@ loadAssignments()
 <template>
   <PageContainer title="成绩管理" description="按教学开课班级查看并维护每个学生的课程成绩。">
     <div class="data-toolbar">
+      <el-input
+        v-model="keyword"
+        class="toolbar-search"
+        clearable
+        placeholder="课程、班级、教师或学年"
+        @keyup.enter="searchAssignments"
+        @clear="searchAssignments"
+      />
+      <el-button @click="searchAssignments">查询</el-button>
       <el-button @click="loadAssignments">刷新</el-button>
     </div>
 

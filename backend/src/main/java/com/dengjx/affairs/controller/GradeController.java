@@ -58,9 +58,10 @@ public class GradeController {
 
     @GetMapping("/api/admin/grades/assignments")
     public ApiResponse<PageResult<Map<String, Object>>> adminAssignmentList(
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "10") long size) {
-        return ApiResponse.ok(gradeService.adminAssignmentList(page, size));
+        return ApiResponse.ok(gradeService.adminAssignmentList(keyword, page, size));
     }
 
     @GetMapping("/api/admin/grades/assignments/{assignmentId}/students")

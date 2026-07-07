@@ -17,7 +17,11 @@ public interface GradeService {
 
     Grade teacherUpdate(Long userId, Long id, GradeRequest request);
 
-    PageResult<Map<String, Object>> adminAssignmentList(long page, long size);
+    default PageResult<Map<String, Object>> adminAssignmentList(long page, long size) {
+        return adminAssignmentList(null, page, size);
+    }
+
+    PageResult<Map<String, Object>> adminAssignmentList(String keyword, long page, long size);
 
     List<Map<String, Object>> adminAssignmentGrades(Long assignmentId);
 

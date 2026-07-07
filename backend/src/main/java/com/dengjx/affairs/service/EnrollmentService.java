@@ -22,7 +22,11 @@ public interface EnrollmentService {
 
     List<Map<String, Object>> assignmentStudents(AuthenticatedUser user, Long assignmentId);
 
-    PageResult<Map<String, Object>> adminList(long page, long size);
+    default PageResult<Map<String, Object>> adminList(long page, long size) {
+        return adminList(null, page, size);
+    }
+
+    PageResult<Map<String, Object>> adminList(String keyword, long page, long size);
 
     Enrollment adminCreate(EnrollmentRequest request);
 

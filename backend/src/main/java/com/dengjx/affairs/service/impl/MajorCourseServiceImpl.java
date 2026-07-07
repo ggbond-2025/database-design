@@ -10,6 +10,7 @@ import com.dengjx.affairs.mapper.MajorCourseMapper;
 import com.dengjx.affairs.service.MajorCourseService;
 import java.util.Set;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 @Service
 public class MajorCourseServiceImpl implements MajorCourseService {
@@ -24,6 +25,27 @@ public class MajorCourseServiceImpl implements MajorCourseService {
 
     public PageResult<MajorCourse> list(String keyword, long page, long size) {
         LambdaQueryWrapper<MajorCourse> wrapper = new LambdaQueryWrapper<>();
+        if (StringUtils.hasText(keyword)) {
+            String trimmedKeyword = keyword.trim();
+            String likeKeyword = "%" + trimmedKeyword + "%";
+            wrapper.and(query -> query
+                    .like(MajorCourse::getCourseType, trimmedKeyword)
+                    .or().apply("""
+                            djx_majorid13 IN (
+                                SELECT djx_majorid13
+                                FROM dengjx_majors13
+                                WHERE djx_majorname13 LIKE {0}
+                            )
+                            """, likeKeyword)
+                    .or().apply("""
+                            djx_courseid13 IN (
+                                SELECT djx_courseid13
+                                FROM dengjx_courses13
+                                WHERE djx_coursecode13 LIKE {0}
+                                   OR djx_coursename13 LIKE {0}
+                            )
+                            """, likeKeyword));
+        }
         wrapper.orderByAsc(MajorCourse::getMajorId)
                 .orderByAsc(MajorCourse::getTargetGrade)
                 .orderByAsc(MajorCourse::getTargetSemester)

@@ -36,7 +36,46 @@ public class AssignmentServiceImpl implements AssignmentService {
     public PageResult<Assignment> list(String keyword, long page, long size) {
         LambdaQueryWrapper<Assignment> wrapper = new LambdaQueryWrapper<>();
         if (StringUtils.hasText(keyword)) {
-            wrapper.like(Assignment::getAcademicYear, keyword);
+            String trimmedKeyword = keyword.trim();
+            String likeKeyword = "%" + trimmedKeyword + "%";
+            wrapper.and(query -> query
+                    .like(Assignment::getAcademicYear, trimmedKeyword)
+                    .or().apply("""
+                            djx_majorcourseid13 IN (
+                                SELECT mc.djx_majorcourseid13
+                                FROM dengjx_majorcourses13 mc
+                                JOIN dengjx_majors13 m ON m.djx_majorid13 = mc.djx_majorid13
+                                JOIN dengjx_courses13 c ON c.djx_courseid13 = mc.djx_courseid13
+                                WHERE m.djx_majorname13 LIKE {0}
+                                   OR c.djx_coursecode13 LIKE {0}
+                                   OR c.djx_coursename13 LIKE {0}
+                                   OR mc.djx_coursetype13 LIKE {0}
+                            )
+                            """, likeKeyword)
+                    .or().apply("""
+                            djx_classid13 IN (
+                                SELECT djx_classid13
+                                FROM dengjx_classes13
+                                WHERE djx_classname13 LIKE {0}
+                            )
+                            """, likeKeyword)
+                    .or().apply("""
+                            djx_teacherid13 IN (
+                                SELECT djx_teacherid13
+                                FROM dengjx_teachers13
+                                WHERE djx_tno13 LIKE {0}
+                                   OR djx_tname13 LIKE {0}
+                            )
+                            """, likeKeyword)
+                    .or().apply("""
+                            djx_classroomid13 IN (
+                                SELECT cr.djx_classroomid13
+                                FROM dengjx_classrooms13 cr
+                                JOIN dengjx_teachingbuildings13 tb ON tb.djx_buildingid13 = cr.djx_buildingid13
+                                WHERE cr.djx_classroomname13 LIKE {0}
+                                   OR tb.djx_buildingname13 LIKE {0}
+                            )
+                            """, likeKeyword));
         }
         wrapper.orderByAsc(Assignment::getAssignmentId);
         Page<Assignment> result = assignmentMapper.selectPage(new Page<>(page, size), wrapper);
