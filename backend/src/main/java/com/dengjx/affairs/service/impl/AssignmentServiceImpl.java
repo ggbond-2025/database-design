@@ -2,6 +2,12 @@ package com.dengjx.affairs.service.impl;
 
 import com.dengjx.affairs.mapper.AssignmentMapper;
 import com.dengjx.affairs.entity.Assignment;
+import com.dengjx.affairs.entity.Enrollment;
+import com.dengjx.affairs.entity.Grade;
+import com.dengjx.affairs.entity.TeachingEvaluation;
+import com.dengjx.affairs.mapper.EnrollmentMapper;
+import com.dengjx.affairs.mapper.GradeMapper;
+import com.dengjx.affairs.mapper.TeachingEvaluationMapper;
 import com.dengjx.affairs.service.AssignmentService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -22,11 +28,26 @@ public class AssignmentServiceImpl implements AssignmentService {
 
     private final AssignmentMapper assignmentMapper;
     private final JdbcTemplate jdbcTemplate;
+    private final EnrollmentMapper enrollmentMapper;
+    private final GradeMapper gradeMapper;
+    private final TeachingEvaluationMapper teachingEvaluationMapper;
 
     @Autowired
-    public AssignmentServiceImpl(AssignmentMapper assignmentMapper, JdbcTemplate jdbcTemplate) {
+    public AssignmentServiceImpl(
+            AssignmentMapper assignmentMapper,
+            JdbcTemplate jdbcTemplate,
+            EnrollmentMapper enrollmentMapper,
+            GradeMapper gradeMapper,
+            TeachingEvaluationMapper teachingEvaluationMapper) {
         this.assignmentMapper = assignmentMapper;
         this.jdbcTemplate = jdbcTemplate;
+        this.enrollmentMapper = enrollmentMapper;
+        this.gradeMapper = gradeMapper;
+        this.teachingEvaluationMapper = teachingEvaluationMapper;
+    }
+
+    public AssignmentServiceImpl(AssignmentMapper assignmentMapper, JdbcTemplate jdbcTemplate) {
+        this(assignmentMapper, jdbcTemplate, null, null, null);
     }
 
     public AssignmentServiceImpl(AssignmentMapper assignmentMapper) {
@@ -110,10 +131,34 @@ public class AssignmentServiceImpl implements AssignmentService {
         return assignment;
     }
 
+    @Transactional
     public void delete(Long id) {
+        if (canCascadeDelete()) {
+            List<Long> enrollmentIds = enrollmentIdsByAssignment(id);
+            if (!enrollmentIds.isEmpty()) {
+                teachingEvaluationMapper.delete(new LambdaQueryWrapper<TeachingEvaluation>()
+                        .in(TeachingEvaluation::getEnrollmentId, enrollmentIds));
+                gradeMapper.delete(new LambdaQueryWrapper<Grade>()
+                        .in(Grade::getEnrollmentId, enrollmentIds));
+            }
+            enrollmentMapper.delete(new LambdaQueryWrapper<Enrollment>()
+                    .eq(Enrollment::getAssignmentId, id));
+        }
         if (assignmentMapper.deleteById(id) == 0) {
             throw new BusinessException("开课安排不存在");
         }
+    }
+
+    private boolean canCascadeDelete() {
+        return enrollmentMapper != null && gradeMapper != null && teachingEvaluationMapper != null;
+    }
+
+    private List<Long> enrollmentIdsByAssignment(Long assignmentId) {
+        return enrollmentMapper.selectList(new LambdaQueryWrapper<Enrollment>()
+                        .eq(Enrollment::getAssignmentId, assignmentId))
+                .stream()
+                .map(Enrollment::getEnrollmentId)
+                .toList();
     }
 
     private void validate(AssignmentRequest request, Long excludeAssignmentId) {

@@ -3,6 +3,7 @@ package com.dengjx.affairs;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -37,6 +38,7 @@ import com.dengjx.affairs.service.TeachingEvaluationService;
 import com.dengjx.affairs.service.impl.TeachingEvaluationServiceImpl;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 import java.time.LocalTime;
 
 class BusinessRuleTests {
@@ -249,6 +251,34 @@ class BusinessRuleTests {
         assertThatThrownBy(() -> service.create(assignmentRequest(1L, 8L, 30L, LocalTime.of(8, 30), LocalTime.of(10, 0))))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("教室");
+    }
+
+    @Test
+    void assignmentDeleteCascadesDependentRowsBeforeDeletingAssignment() {
+        AssignmentMapper assignmentMapper = mock(AssignmentMapper.class);
+        EnrollmentMapper enrollmentMapper = mock(EnrollmentMapper.class);
+        GradeMapper gradeMapper = mock(GradeMapper.class);
+        TeachingEvaluationMapper teachingEvaluationMapper = mock(TeachingEvaluationMapper.class);
+        Enrollment enrollment = new Enrollment();
+        enrollment.setEnrollmentId(12L);
+
+        when(enrollmentMapper.selectList(any())).thenReturn(List.of(enrollment));
+        when(assignmentMapper.deleteById(7L)).thenReturn(1);
+
+        AssignmentService service = new AssignmentServiceImpl(
+                assignmentMapper,
+                null,
+                enrollmentMapper,
+                gradeMapper,
+                teachingEvaluationMapper);
+
+        service.delete(7L);
+
+        InOrder order = inOrder(teachingEvaluationMapper, gradeMapper, enrollmentMapper, assignmentMapper);
+        order.verify(teachingEvaluationMapper).delete(any());
+        order.verify(gradeMapper).delete(any());
+        order.verify(enrollmentMapper).delete(any());
+        order.verify(assignmentMapper).deleteById(7L);
     }
 
     @Test

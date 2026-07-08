@@ -16,6 +16,7 @@ class TransactionBoundaryTests {
     void assignmentWriteOperationsAreTransactional() throws NoSuchMethodException {
         assertTransactional(AssignmentServiceImpl.class.getMethod("create", com.dengjx.affairs.dto.AssignmentRequest.class));
         assertTransactional(AssignmentServiceImpl.class.getMethod("update", Long.class, com.dengjx.affairs.dto.AssignmentRequest.class));
+        assertTransactional(AssignmentServiceImpl.class.getMethod("delete", Long.class));
     }
 
     @Test
